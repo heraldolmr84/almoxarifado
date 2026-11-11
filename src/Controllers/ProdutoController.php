@@ -18,15 +18,36 @@ class ProdutoController
 
     public function listAction(): void
     {
-        $produtos = (new Produto())->all();
+        $model = new Produto();
         
-        // Pega mensagem da sessão (se existir) e apaga em seguida
+        $filtros = [
+            'codigo' => $_GET['codigo'] ?? '',
+            'descricao' => $_GET['descricao'] ?? '',
+            'categoria_id' => $_GET['categoria_id'] ?? ''
+        ];
+
+        // --- INÍCIO DA LÓGICA DE PAGINAÇÃO ---
+        $limit = 10; // Quantos itens por página
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+        if ($page < 1) $page = 1;
+        
+        $offset = ($page - 1) * $limit;
+        
+        $produtos = $model->all($filtros, $limit, $offset);
+        $totalRegistros = $model->countAll($filtros);
+        $totalPaginas = ceil($totalRegistros / $limit);
+        // --- FIM DA LÓGICA DE PAGINAÇÃO ---
+
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
         
         $this->render('produtos/list', [
             'produtos' => $produtos,
-            'mensagem' => $mensagem
+            'categorias' => $model->getCategorias(),
+            'mensagem' => $mensagem,
+            'filtros' => $filtros,
+            'page' => $page,
+            'totalPaginas' => $totalPaginas
         ]);
     }
 

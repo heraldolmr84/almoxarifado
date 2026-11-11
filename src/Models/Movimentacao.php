@@ -53,15 +53,44 @@ class Movimentacao
         }
     }
 
-    public function listarRecentes(): array
+    public function listarRecentes(array $filtros = []): array
     {
         $sql = "SELECT m.id, m.data_movimentacao, m.tipo, m.subtipo, m.documento, 
-                       u.nome AS usuario, a.nome AS almoxarifado
+                       u.nome AS usuario, 
+                       COALESCE(ad.nome, ao.nome) AS almoxarifado
                   FROM movimentacoes m
                   JOIN usuarios u ON u.id = m.usuario_id
-                  LEFT JOIN almoxarifados a ON a.id = m.almoxarifado_destino_id
-                 ORDER BY m.id DESC LIMIT 50";
-        return Database::getConnection()->query($sql)->fetchAll();
+                  LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
+                  LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
+                 WHERE 1=1";
+                 
+        $params = [];
+
+        if (!empty($filtros['tipo'])) {
+            $sql .= " AND m.tipo = :tipo";
+            $params['tipo'] = $filtros['tipo'];
+        }
+
+        if (!empty($filtros['documento'])) {
+            $sql .= " AND m.documento ILIKE :documento";
+            $params['documento'] = '%' . $filtros['documento'] . '%';
+        }
+
+        if (!empty($filtros['data_inicio'])) {
+            $sql .= " AND m.data_movimentacao >= :data_inicio";
+            $params['data_inicio'] = $filtros['data_inicio'] . ' 00:00:00';
+        }
+
+        if (!empty($filtros['data_fim'])) {
+            $sql .= " AND m.data_movimentacao <= :data_fim";
+            $params['data_fim'] = $filtros['data_fim'] . ' 23:59:59';
+        }
+
+        $sql .= " ORDER BY m.id DESC LIMIT 100";
+        
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
         // Método auxiliar para consultar o saldo atual

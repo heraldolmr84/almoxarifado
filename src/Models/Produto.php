@@ -6,18 +6,68 @@ use PDO;
 
 class Produto
 {
-    // Modificado para trazer apenas produtos ativos
-    public function all(): array
+    public function all(array $filtros = [], int $limit = 10, int $offset = 0): array
     {
-        $stmt = Database::getConnection()->query("
-            SELECT p.*, c.nome AS categoria, u.sigla AS unidade
-              FROM produtos p
-              LEFT JOIN categorias c ON c.id = p.categoria_id
-              JOIN unidades_medida u ON u.id = p.unidade_medida_id
-             WHERE p.ativo = TRUE
-             ORDER BY p.descricao
-        ");
+        $sql = "SELECT p.*, c.nome AS categoria, u.sigla AS unidade
+                  FROM produtos p
+                  LEFT JOIN categorias c ON c.id = p.categoria_id
+                  JOIN unidades_medida u ON u.id = p.unidade_medida_id
+                 WHERE p.ativo = TRUE";
+                 
+        $params = [];
+
+        if (!empty($filtros['codigo'])) {
+            $sql .= " AND p.codigo ILIKE :codigo";
+            $params['codigo'] = '%' . $filtros['codigo'] . '%';
+        }
+        if (!empty($filtros['descricao'])) {
+            $sql .= " AND p.descricao ILIKE :descricao";
+            $params['descricao'] = '%' . $filtros['descricao'] . '%';
+        }
+        if (!empty($filtros['categoria_id'])) {
+            $sql .= " AND p.categoria_id = :categoria_id";
+            $params['categoria_id'] = $filtros['categoria_id'];
+        }
+
+        // Adicionando a paginação na query
+        $sql .= " ORDER BY p.descricao LIMIT :limit OFFSET :offset";
+        
+        $stmt = Database::getConnection()->prepare($sql);
+        
+        // Bind dos filtros normais
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+        
+        // O PostgreSQL exige que LIMIT e OFFSET sejam tratados como INT
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
         return $stmt->fetchAll();
+    }
+
+    public function countAll(array $filtros = []): int
+    {
+        $sql = "SELECT COUNT(*) FROM produtos p WHERE p.ativo = TRUE";
+        $params = [];
+
+        if (!empty($filtros['codigo'])) {
+            $sql .= " AND p.codigo ILIKE :codigo";
+            $params['codigo'] = '%' . $filtros['codigo'] . '%';
+        }
+        if (!empty($filtros['descricao'])) {
+            $sql .= " AND p.descricao ILIKE :descricao";
+            $params['descricao'] = '%' . $filtros['descricao'] . '%';
+        }
+        if (!empty($filtros['categoria_id'])) {
+            $sql .= " AND p.categoria_id = :categoria_id";
+            $params['categoria_id'] = $filtros['categoria_id'];
+        }
+
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
     }
 
     public function getCategorias(): array

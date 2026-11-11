@@ -9,11 +9,25 @@ class RequisicaoController
     public function listAction(): void
     {
         $user = Auth::user();
-        $requisicoes = (new Requisicao())->listarRecentes($user['id'], $user['perfil']);
+        $model = new Requisicao();
+        
+        // Pega os filtros da URL, se existirem
+        $filtros = [
+            'status' => $_GET['status'] ?? '',
+            'numero' => $_GET['numero'] ?? '',
+            'departamento_id' => $_GET['departamento_id'] ?? ''
+        ];
+
+        $requisicoes = $model->listarRecentes($user['id'], $user['perfil'], $filtros);
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
         
-        $this->render('requisicoes/list', ['requisicoes' => $requisicoes, 'mensagem' => $mensagem]);
+        $this->render('requisicoes/list', [
+            'requisicoes' => $requisicoes, 
+            'mensagem' => $mensagem,
+            'filtros' => $filtros,
+            'departamentos' => $model->getDepartamentos() // Para preencher o select
+        ]);
     }
 
     public function createAction(): void
@@ -143,5 +157,48 @@ class RequisicaoController
         require __DIR__ . '/../Views/layout/header.php';
         require __DIR__ . "/../Views/{$view}.php";
         require __DIR__ . '/../Views/layout/footer.php';
+    }
+
+    public function backordersAction(): void
+    {
+        $backorders = (new Requisicao())->listarBackorders();
+        $this->render('requisicoes/backorders', ['backorders' => $backorders]);
+    }
+
+    // Função para Cancelar uma requisição (apenas ADMIN ou ALMOXARIFE podem cancelar)
+    public function cancelarAction(): void
+    {
+        $user = Auth::user();
+        $id = (int) ($_POST['id'] ?? 0);
+        $motivo = trim($_POST['motivo'] ?? '');
+        $requisicao = (new Requisicao())->find($id);
+
+        // Validação de permissão
+        if (!$requisicao) {
+            header('Location: ?controller=requisicao&action=list'); exit;
+        }
+        
+        // Operador só cancela as próprias requisições se ainda forem rascunho ou aguardando aprovação
+        if ($user['perfil'] === 'OPERADOR') {
+            if ($requisicao['solicitante_id'] != $user['id'] || !in_array($requisicao['status'], ['RASCUNHO', 'AGUARDANDO_APROVACAO'])) {
+                $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Você não tem permissão para cancelar esta requisição.'];
+                header('Location: ?controller=requisicao&action=show&id=' . $id); exit;
+            }
+        }
+
+        if (empty($motivo)) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Você precisa informar o motivo do cancelamento.'];
+            header('Location: ?controller=requisicao&action=show&id=' . $id); exit;
+        }
+
+        try {
+            (new Requisicao())->cancelar($id, $motivo, $user['id']);
+            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Requisição cancelada com sucesso! Estoque (se havia sido entregue) devolvido.'];
+        } catch (\Exception $e) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
+        }
+
+        header('Location: ?controller=requisicao&action=show&id=' . $id);
+        exit;
     }
 }

@@ -70,26 +70,44 @@ class Requisicao
         }
     }
 
-    public function listarRecentes(int $usuarioId, string $perfil): array
+    public function listarRecentes(int $usuarioId, string $perfil, array $filtros = []): array
     {
-        // Admin/Almoxarife vê tudo. Operador vê apenas as suas.
         $sql = "SELECT r.id, r.numero, r.status, r.prioridade, r.criado_em, 
                        d.nome AS departamento, u.nome AS solicitante
                   FROM requisicoes r
                   JOIN departamentos d ON d.id = r.departamento_id
-                  JOIN usuarios u ON u.id = r.solicitante_id";
+                  JOIN usuarios u ON u.id = r.solicitante_id
+                 WHERE 1=1"; // 1=1 facilita a concatenação de ANDs
                   
+        $params = [];
+
         if ($perfil === 'OPERADOR') {
-            $sql .= " WHERE r.solicitante_id = :usuario";
+            $sql .= " AND r.solicitante_id = :usuario";
+            $params['usuario'] = $usuarioId;
+        }
+
+        // Filtro por Status
+        if (!empty($filtros['status'])) {
+            $sql .= " AND r.status = :status";
+            $params['status'] = $filtros['status'];
+        }
+
+        // Filtro por Número da Requisição
+        if (!empty($filtros['numero'])) {
+            $sql .= " AND r.numero ILIKE :numero";
+            $params['numero'] = '%' . $filtros['numero'] . '%';
         }
         
-        $sql .= " ORDER BY r.id DESC LIMIT 50";
+        // Filtro por Departamento
+        if (!empty($filtros['departamento_id'])) {
+            $sql .= " AND r.departamento_id = :dep_id";
+            $params['dep_id'] = $filtros['departamento_id'];
+        }
+        
+        $sql .= " ORDER BY r.id DESC LIMIT 100";
         
         $stmt = Database::getConnection()->prepare($sql);
-        if ($perfil === 'OPERADOR') {
-            $stmt->bindValue(':usuario', $usuarioId, PDO::PARAM_INT);
-        }
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
@@ -246,4 +264,91 @@ class Requisicao
             throw $e;
         }
     }
+
+    public function listarBackorders(): array
+    {
+        $sql = "SELECT r.id AS requisicao_id, r.numero, r.status, r.criado_em,
+                       d.nome AS departamento,
+                       p.codigo, p.descricao, p.id AS produto_id,
+                       ri.id AS item_id,
+                       ri.quantidade_aprovada, ri.quantidade_atendida,
+                       (ri.quantidade_aprovada - ri.quantidade_atendida) AS quantidade_pendente,
+                       COALESCE(SUM(s.quantidade), 0) AS estoque_atual
+                  FROM requisicoes_itens ri
+                  JOIN requisicoes r ON r.id = ri.requisicao_id
+                  JOIN produtos p ON p.id = ri.produto_id
+                  JOIN departamentos d ON d.id = r.departamento_id
+                  LEFT JOIN saldo_estoque s ON s.produto_id = ri.produto_id AND s.almoxarifado_id = r.almoxarifado_id
+                 WHERE r.status IN ('ATENDIDA_PARCIAL', 'AGUARDANDO_ESTOQUE')
+                   AND ri.quantidade_atendida < ri.quantidade_aprovada
+                 GROUP BY r.id, d.nome, p.id, ri.id
+                 ORDER BY r.criado_em ASC"; // Mais antigas primeiro (FIFO)
+                 
+        return Database::getConnection()->query($sql)->fetchAll();
+    }
+
+    public function cancelar(int $id, string $motivo, int $usuarioId): bool
+    {
+        $db = Database::getConnection();
+        $req = $this->find($id);
+
+        // Não pode cancelar o que já foi totalmente atendido ou já está cancelado
+        if (!$req || in_array($req['status'], ['ATENDIDA', 'CANCELADA'])) {
+            throw new \Exception("Esta requisição não pode ser cancelada.");
+        }
+
+        try {
+            $db->beginTransaction();
+
+            // 1. Verificar se houve algum atendimento parcial (precisa devolver ao estoque)
+            $temItensAtendidos = false;
+            $itensParaDevolver = [];
+
+            foreach ($req['itens'] as $item) {
+                if ((float) $item['quantidade_atendida'] > 0) {
+                    $temItensAtendidos = true;
+                    $itensParaDevolver[] = $item;
+                }
+            }
+
+            // 2. Se teve entrega, gera uma movimentação de ENTRADA (Devolução)
+            if ($temItensAtendidos) {
+                $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, requisicao_id, observacao) 
+                           VALUES ('ENTRADA', 'DEVOLUCAO', :usuario, :almox, :req_id, :obs) RETURNING id";
+                $stmtMov = $db->prepare($sqlMov);
+                $stmtMov->execute([
+                    'usuario' => $usuarioId,
+                    'almox'   => $req['almoxarifado_id'],
+                    'req_id'  => $req['id'],
+                    'obs'     => 'Estorno por cancelamento da ' . $req['numero']
+                ]);
+                $movimentacaoId = $stmtMov->fetchColumn();
+
+                $sqlItemMov = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade) VALUES (:mov, :prod, :qtd)";
+                $stmtItemMov = $db->prepare($sqlItemMov);
+
+                foreach ($itensParaDevolver as $item) {
+                    // Devolve o que já havia sido entregue
+                    $stmtItemMov->execute([
+                        'mov'  => $movimentacaoId,
+                        'prod' => $item['produto_id'],
+                        'qtd'  => $item['quantidade_atendida']
+                    ]);
+                }
+            }
+
+            // 3. Atualiza o status da requisição para CANCELADA
+            $sqlReq = "UPDATE requisicoes 
+                          SET status = 'CANCELADA', motivo_cancelamento = :motivo 
+                        WHERE id = :id";
+            $db->prepare($sqlReq)->execute(['motivo' => $motivo, 'id' => $id]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
 }   

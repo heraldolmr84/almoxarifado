@@ -1,0 +1,22 @@
+.navbar {
+    background: linear-gradient(
+        to right,
+        #0088B7 0%,
+        #00B0EB 25%,
+        #1AC6FF 50%,
+        #4DD2FF 75%,
+        #7ADEFF 100%
+    );
+}
+
+.nav-item .nav-link {
+    color: #fff; /* Cor do texto dos links */
+}
+
+.logo-img {
+    margin: auto 40px 0 0; /* Espaçamento entre a logo e o texto */
+}
+
+.logo {
+   height: 68px; width: auto; object-fit: contain;
+}

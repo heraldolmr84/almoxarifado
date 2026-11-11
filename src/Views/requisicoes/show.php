@@ -29,6 +29,24 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejeitar">Rejeitar</button>
         <?php endif; ?>
         
+        <?php 
+        // Lógica para exibir o botão de cancelar
+            $podeCancelar = false;
+            if ($requisicao['status'] !== 'ATENDIDA' && $requisicao['status'] !== 'CANCELADA') {
+                if ($isAprovador) {
+                    $podeCancelar = true;
+                } elseif ($requisicao['solicitante_id'] == $user['id'] && in_array($requisicao['status'], ['RASCUNHO', 'AGUARDANDO_APROVACAO'])) {
+                    $podeCancelar = true;
+                }
+            }
+        ?>
+        
+        <?php if ($podeCancelar): ?>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar">
+                Cancelar Requisição
+            </button>
+        <?php endif; ?>
+        
         <a href="?controller=requisicao&action=list" class="btn btn-secondary">Voltar</a>
     </div>
 </div>
@@ -114,6 +132,34 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
     </form>
 <?php endif; ?>
 
+<!-- Modal de Cancelamento -->
+<?php if ($podeCancelar): ?>
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="?controller=requisicao&action=cancelar" method="POST" class="modal-content">
+            <input type="hidden" name="id" value="<?= $requisicao['id'] ?>">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Cancelar Requisição</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL'): ?>
+                    <div class="alert alert-warning py-2">
+                        <small>Atenção: Os itens já entregues serão devolvidos ao estoque automaticamente.</small>
+                    </div>
+                <?php endif; ?>
+                <label class="form-label">Motivo do Cancelamento *</label>
+                <textarea name="motivo" class="form-control" required placeholder="Descreva o motivo..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Modal de Rejeição -->
 <?php if ($requisicao['status'] === 'AGUARDANDO_APROVACAO' && $isAprovador): ?>
 <div class="modal fade" id="modalRejeitar" tabindex="-1">
@@ -134,4 +180,10 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
         </form>
     </div>
 </div>
+<?php endif; ?>
+
+<?php if ($requisicao['status'] === 'CANCELADA'): ?>
+        <div class="alert alert-dark mb-0">
+            <strong>Motivo do Cancelamento:</strong> <?= htmlspecialchars($requisicao['motivo_cancelamento'] ?? 'Não informado') ?>
+        </div>
 <?php endif; ?>

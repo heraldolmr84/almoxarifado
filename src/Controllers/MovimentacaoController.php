@@ -19,11 +19,24 @@ class MovimentacaoController
 
     public function listAction(): void
     {
-        $movimentacoes = (new Movimentacao())->listarRecentes();
+        $model = new Movimentacao();
+        
+        $filtros = [
+            'tipo' => $_GET['tipo'] ?? '',
+            'documento' => $_GET['documento'] ?? '',
+            'data_inicio' => $_GET['data_inicio'] ?? '',
+            'data_fim' => $_GET['data_fim'] ?? ''
+        ];
+
+        $movimentacoes = $model->listarRecentes($filtros);
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
         
-        $this->render('movimentacoes/list', ['movimentacoes' => $movimentacoes, 'mensagem' => $mensagem]);
+        $this->render('movimentacoes/list', [
+            'movimentacoes' => $movimentacoes, 
+            'mensagem' => $mensagem,
+            'filtros' => $filtros
+        ]);
     }
 
     public function entradaAction(): void

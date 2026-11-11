@@ -7,7 +7,11 @@ use App\Core\Auth;
 class AlmoxarifadoController
 {
     public function __construct() {
-        if (Auth::user()['perfil'] !== 'ADMIN') { die("Acesso negado."); }
+        $user = \App\Core\Auth::user();
+        // Alterado para permitir Almoxarife também
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
+            die("Acesso negado. Apenas administradores e almoxarifes podem gerenciar almoxarifados.");
+        }
     }
 
     public function listAction(): void {

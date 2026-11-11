@@ -13,8 +13,8 @@ use App\Core\Router;
 use App\Core\Auth;
 
 // Pega a controller e action da URL (ou define o padrão)
-$controller = $_GET['controller'] ?? 'produto';
-$action = $_GET['action'] ?? 'list';
+$controller = $_GET['controller'] ?? 'dashboard';
+$action = $_GET['action'] ?? 'index';
 
 // Se NÃO estiver logado E NÃO estiver tentando acessar a tela de login, bloqueia!
 if (!Auth::check() && $controller !== 'auth') {

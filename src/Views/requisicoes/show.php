@@ -18,6 +18,12 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
             <a href="?controller=requisicao&action=enviar&id=<?= $requisicao['id'] ?>" class="btn btn-warning">Enviar para Aprovação</a>
         <?php endif; ?>
 
+        <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+            <button type="submit" form="formAtendimento" class="btn btn-success" onclick="return confirm('Confirmar a baixa no estoque dos itens preenchidos?')">
+                <strong>Confirmar Atendimento</strong>
+            </button>
+        <?php endif; ?>
+
         <?php if ($requisicao['status'] === 'AGUARDANDO_APROVACAO' && $isAprovador): ?>
             <a href="?controller=requisicao&action=aprovar&id=<?= $requisicao['id'] ?>" class="btn btn-success" onclick="return confirm('Aprovar esta requisição?')">Aprovar</a>
             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejeitar">Rejeitar</button>
@@ -47,28 +53,66 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
 </div>
 
 <h4>Itens Solicitados</h4>
+
+<?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+    <!-- Se estiver pronto para atender, abre o formulário -->
+        <form id="formAtendimento" action="?controller=requisicao&action=atender" method="POST">
+        <input type="hidden" name="id" value="<?= $requisicao['id'] ?>">
+<?php endif; ?>
+
 <div class="card shadow-sm">
     <table class="table table-striped mb-0">
         <thead class="table-dark">
             <tr>
                 <th>Código</th>
                 <th>Produto</th>
-                <th>Qtd Solicitada</th>
                 <th>Qtd Aprovada</th>
+                <th>Já Atendido</th>
+                <th>Pendente</th>
+                <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+                    <th class="bg-success text-white">Entregar Agora</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($requisicao['itens'] as $item): ?>
+            <?php foreach ($requisicao['itens'] as $item): 
+                // Tratando valores nulos para o PHP 8.2+
+                $qtdAprovada = $item['quantidade_aprovada'] !== null ? (float)$item['quantidade_aprovada'] : null;
+                $qtdAtendida = $item['quantidade_atendida'] !== null ? (float)$item['quantidade_atendida'] : 0.0;
+                $pendente = $qtdAprovada !== null ? ($qtdAprovada - $qtdAtendida) : null;
+            ?>
             <tr>
                 <td><?= htmlspecialchars($item['codigo']) ?></td>
                 <td><?= htmlspecialchars($item['descricao']) ?></td>
-                <td><?= $item['quantidade_solicitada'] ?> <?= $item['unidade'] ?></td>
-                <td><?= $item['quantidade_aprovada'] ? $item['quantidade_aprovada'] . ' ' . $item['unidade'] : '—' ?></td>
+                <td>
+                    <?= $qtdAprovada !== null ? number_format($qtdAprovada, 3, ',', '.') . ' ' . $item['unidade'] : '—' ?>
+                </td>
+                <td class="text-success fw-bold">
+                    <?= number_format($qtdAtendida, 3, ',', '.') ?>
+                </td>
+                <td class="text-danger fw-bold">
+                    <?= $pendente !== null ? number_format($pendente, 3, ',', '.') : '—' ?>
+                </td>
+                
+                <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+                    <td>
+                        <?php if ($pendente > 0): ?>
+                            <input type="number" step="0.001" name="quantidade_atendida[<?= $item['id'] ?>]" 
+                                   class="form-control form-control-sm" value="<?= $pendente ?>" max="<?= $pendente ?>" min="0">
+                        <?php else: ?>
+                            <span class="badge bg-success">Completo</span>
+                        <?php endif; ?>
+                    </td>
+                <?php endif; ?>
             </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
+
+<?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+    </form>
+<?php endif; ?>
 
 <!-- Modal de Rejeição -->
 <?php if ($requisicao['status'] === 'AGUARDANDO_APROVACAO' && $isAprovador): ?>

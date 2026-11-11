@@ -10,7 +10,15 @@ class AuthController
     {
         // Se já estiver logado, manda para a home
         if (Auth::check()) {
-            header('Location: ?controller=produto&action=list');
+
+            // Redirecionamento baseado no perfil
+            if ($usuario['perfil'] === 'OPERADOR') {
+                header('Location: ?controller=requisicao&action=list');
+            } else {
+                header('Location: ?controller=dashboard&action=index');
+            }
+            // Substitua as verificações de perfil por esta linha única:
+            //header('Location: ?controller=dashboard&action=index');
             exit;
         }
         
@@ -33,7 +41,14 @@ class AuthController
 
         if ($usuario && password_verify($senha, $usuario['senha_hash'])) {
             Auth::login($usuario);
-            header('Location: ?controller=produto&action=list');
+            // Redirecionamento baseado no perfil
+            if ($usuario['perfil'] === 'OPERADOR') {
+                header('Location: ?controller=requisicao&action=list');
+            } else {
+                header('Location: ?controller=dashboard&action=index');
+            }
+            // Substitua as verificações de perfil por esta linha única:
+            //header('Location: ?controller=dashboard&action=index');
             exit;
         }
 

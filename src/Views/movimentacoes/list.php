@@ -30,7 +30,7 @@
             
             <?php foreach ($movimentacoes as $m): ?>
             <tr>
-                <td>#<?= $m['id'] ?></td>
+                <td><a href="?controller=movimentacao&action=show&id=<?= $m['id'] ?>">#<?= $m['id'] ?></a></td>
                 <td><?= date('d/m/Y H:i', strtotime($m['data_movimentacao'])) ?></td>
                 <td>
                     <span class="badge <?= $m['tipo'] == 'ENTRADA' ? 'bg-success' : 'bg-danger' ?>">

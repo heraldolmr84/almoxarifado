@@ -68,7 +68,7 @@ class Movimentacao
     public function getSaldo(int $produtoId, int $almoxarifadoId): float
     {
         $stmt = Database::getConnection()->prepare(
-            "SELECT quantidade FROM saldo_estoque WHERE produto_id = :p AND almoxarifado_id = :a"
+            "SELECT COALESCE(SUM(quantidade), 0) FROM saldo_estoque WHERE produto_id = :p AND almoxarifado_id = :a"
         );
         $stmt->execute(['p' => $produtoId, 'a' => $almoxarifadoId]);
         $saldo = $stmt->fetchColumn();
@@ -118,5 +118,43 @@ class Movimentacao
             $db->rollBack();
             throw $e;
         }
+    }
+
+    public function find(int $id): ?array
+    {
+        $db = Database::getConnection();
+        
+        $sql = "SELECT m.*, 
+                       u.nome AS usuario,
+                       ad.nome AS almox_destino, 
+                       ao.nome AS almox_origem,
+                       d.nome AS departamento,
+                       r.numero AS numero_requisicao
+                  FROM movimentacoes m
+                  JOIN usuarios u ON u.id = m.usuario_id
+                  LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
+                  LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
+                  LEFT JOIN departamentos d ON d.id = m.departamento_id
+                  LEFT JOIN requisicoes r ON r.id = m.requisicao_id
+                 WHERE m.id = :id";
+                 
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        $mov = $stmt->fetch();
+        
+        if (!$mov) return null;
+
+        // Busca os itens da movimentação
+        $sqlItens = "SELECT i.*, p.codigo, p.descricao, u.sigla AS unidade
+                       FROM itens_movimentacao i
+                       JOIN produtos p ON p.id = i.produto_id
+                       JOIN unidades_medida u ON u.id = p.unidade_medida_id
+                      WHERE i.movimentacao_id = :id";
+                      
+        $stmtItens = $db->prepare($sqlItens);
+        $stmtItens->execute(['id' => $id]);
+        $mov['itens'] = $stmtItens->fetchAll();
+
+        return $mov;
     }
 }

@@ -5,6 +5,17 @@ use App\Models\Produto;
 
 class ProdutoController
 {
+
+    public function __construct()
+    {
+        $user = \App\Core\Auth::user();
+        if ($user['perfil'] === 'OPERADOR') {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado. Você não tem permissão para gerenciar o catálogo.'];
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
+    }
+
     public function listAction(): void
     {
         $produtos = (new Produto())->all();

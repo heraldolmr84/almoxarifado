@@ -6,6 +6,17 @@ use App\Core\Auth;
 
 class MovimentacaoController
 {
+    
+    public function __construct()
+    {
+        $user = \App\Core\Auth::user();
+        if ($user['perfil'] === 'OPERADOR') {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado. Apenas almoxarifes podem movimentar o estoque diretamente.'];
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
+    }
+
     public function listAction(): void
     {
         $movimentacoes = (new Movimentacao())->listarRecentes();
@@ -84,6 +95,21 @@ class MovimentacaoController
             header('Location: ?controller=movimentacao&action=saida');
         }
         exit;
+    }
+
+    // Método para mostrar a View de detalhes de uma movimentação específica
+    public function showAction(array $query): void
+    {
+        $id = (int) ($query['id'] ?? 0);
+        $movimentacao = (new Movimentacao())->find($id);
+
+        if (!$movimentacao) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Movimentação não encontrada.'];
+            header('Location: ?controller=movimentacao&action=list');
+            exit;
+        }
+
+        $this->render('movimentacoes/show', ['mov' => $movimentacao]);
     }
 
     private function render(string $view, array $data = []): void

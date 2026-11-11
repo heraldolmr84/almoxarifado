@@ -113,6 +113,30 @@ class RequisicaoController
         exit;
     }
 
+    //FUNÇÃO PARA ATENDER A REQUISIÇÃO (APROVADA -> ATENDIDA)
+    public function atenderAction(array $query): void
+    {
+        $user = Auth::user();
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Apenas almoxarifes podem atender requisições.'];
+            header('Location: ?controller=requisicao&action=show&id=' . $query['id']);
+            exit;
+        }
+
+        $id = (int) ($_POST['id'] ?? 0);
+        $quantidades = $_POST['quantidade_atendida'] ?? []; // Array com ID do item => Qtd
+
+        try {
+            (new Requisicao())->atender($id, $quantidades, $user['id']);
+            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Requisição atendida com sucesso! Estoque atualizado.'];
+        } catch (\Exception $e) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
+        }
+        
+        header('Location: ?controller=requisicao&action=show&id=' . $id);
+        exit;
+    }
+
     private function render(string $view, array $data = []): void
     {
         extract($data);

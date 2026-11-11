@@ -19,22 +19,34 @@ $user = Auth::user();
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" href="?controller=produto&action=list">Produtos</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="?controller=categoria&action=list">Categorias</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="?controller=unidade&action=list">Unidades</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="?controller=movimentacao&action=list">Movimentações</a>
-                </li>
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?controller=dashboard&action=index">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?controller=produto&action=list">Produtos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?controller=categoria&action=list">Categorias</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?controller=unidade&action=list">Unidades</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?controller=movimentacao&action=list">Movimentações</a>
+                    </li>
+                <?php endif; ?>
+                
                 <li class="nav-item">
                     <a class="nav-link" href="?controller=requisicao&action=list">Requisições</a>
                 </li>
+
+                <?php if ($user['perfil'] === 'ADMIN'): ?>
+                    <li class="nav-item"><a class="nav-link" href="?controller=almoxarifado&action=list">Almoxarifados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="?controller=usuario&action=list">Usuários</a></li>
+                <?php endif; ?>
             </ul>
             <div class="ms-auto d-flex align-items-center">
                 <?php if ($user): ?>

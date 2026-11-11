@@ -172,4 +172,78 @@ class Requisicao
         $stmt = Database::getConnection()->prepare($sql);
         return $stmt->execute(['id' => $id, 'aprovador' => $aprovadorId, 'motivo' => $motivo]);
     }
-}
+
+    // Função para atender a requisição (APROVADA -> ATENDIDA)
+    public function atender(int $id, array $quantidadesAtendidas, int $usuarioId): bool
+    {
+        $db = Database::getConnection();
+        $req = $this->find($id);
+
+        if (!$req || !in_array($req['status'], ['APROVADA', 'ATENDIDA_PARCIAL'])) {
+            throw new \Exception("Esta requisição não está pronta para atendimento.");
+        }
+
+        try {
+            $db->beginTransaction();
+            $temPendencia = false;
+
+            // 1. Criar o cabeçalho da movimentação (só se houver algo para entregar)
+            $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_origem_id, departamento_id, requisicao_id, observacao) 
+                       VALUES ('SAIDA', 'REQUISICAO', :usuario, :almox, :dep, :req_id, :obs) RETURNING id";
+            $stmtMov = $db->prepare($sqlMov);
+            $stmtMov->execute([
+                'usuario' => $usuarioId, 'almox' => $req['almoxarifado_id'], 'dep' => $req['departamento_id'],
+                'req_id' => $req['id'], 'obs' => 'Atendimento da ' . $req['numero']
+            ]);
+            $movimentacaoId = $stmtMov->fetchColumn();
+
+            $sqlItemMov = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade) VALUES (:mov, :prod, :qtd)";
+            $stmtItemMov = $db->prepare($sqlItemMov);
+
+            $sqlUpdateReqItem = "UPDATE requisicoes_itens SET quantidade_atendida = quantidade_atendida + :qtd WHERE id = :id";
+            $stmtUpdateReqItem = $db->prepare($sqlUpdateReqItem);
+
+            // 2. Processar item por item
+            foreach ($req['itens'] as $item) {
+                $entregarAgora = (float) ($quantidadesAtendidas[$item['id']] ?? 0);
+                $pendente = (float) $item['quantidade_aprovada'] - (float) $item['quantidade_atendida'];
+
+                // Se o usuário tentou entregar mais do que deve, limitamos ao pendente
+                if ($entregarAgora > $pendente) {
+                    $entregarAgora = $pendente;
+                }
+
+                if ($entregarAgora > 0) {
+                    // Verifica saldo real antes de baixar
+                    $stmtSaldo = $db->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM saldo_estoque WHERE produto_id = :p AND almoxarifado_id = :a");
+                    $stmtSaldo->execute(['p' => $item['produto_id'], 'a' => $req['almoxarifado_id']]);
+                    $saldoAtual = (float) $stmtSaldo->fetchColumn();
+
+                    if ($saldoAtual < $entregarAgora) {
+                        throw new \Exception("Saldo insuficiente para {$item['descricao']}. Disponível: {$saldoAtual}");
+                    }
+
+                    // Baixa no estoque
+                    $stmtItemMov->execute(['mov' => $movimentacaoId, 'prod' => $item['produto_id'], 'qtd' => $entregarAgora]);
+                    // Atualiza o item da requisição
+                    $stmtUpdateReqItem->execute(['qtd' => $entregarAgora, 'id' => $item['id']]);
+                }
+
+                // Verifica se ainda vai sobrar algo pendente
+                if (($item['quantidade_atendida'] + $entregarAgora) < $item['quantidade_aprovada']) {
+                    $temPendencia = true;
+                }
+            }
+
+            // 3. Define o status final
+            $novoStatus = $temPendencia ? 'ATENDIDA_PARCIAL' : 'ATENDIDA';
+            $db->prepare("UPDATE requisicoes SET status = :status WHERE id = :id")->execute(['status' => $novoStatus, 'id' => $id]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+}   

@@ -9,24 +9,53 @@
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="?controller=movimentacao&action=storeSaida" method="POST">
-            
+
             <div class="row mb-3">
-                <div class="col-md-6">
+                <!-- Produto e Almoxarifado com onchange para recarregar a página -->
+                <div class="col-md-4">
                     <label class="form-label">Produto *</label>
-                    <select name="produto_id" class="form-select" required>
-                        <option value="">Selecione o produto...</option>
+                    <select name="produto_id" class="form-select select2" required
+                        onchange="location.href='?controller=movimentacao&action=saida&produto_id=' + this.value + '&almoxarifado_id=' + document.getElementById('almoxSelect').value;">
+                        <option value="">Selecione...</option>
                         <?php foreach ($produtos as $p): ?>
-                            <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['codigo'] . ' - ' . $p['descricao']) ?></option>
+                            <option value="<?= $p['id'] ?>" <?= $produtoSelecionado == $p['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($p['codigo'] . ' - ' . $p['descricao']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Almoxarifado de Origem *</label>
-                    <select name="almoxarifado_id" class="form-select" required>
+                <div class="col-md-4">
+                    <label class="form-label">Almoxarifado *</label>
+                    <select name="almoxarifado_id" id="almoxSelect" class="form-select" required
+                        onchange="location.href='?controller=movimentacao&action=saida&produto_id=' + document.querySelector('[name=produto_id]').value + '&almoxarifado_id=' + this.value;">
                         <?php foreach ($almoxarifados as $a): ?>
-                            <option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['nome']) ?></option>
+                            <option value="<?= $a['id'] ?>" <?= $almoxarifadoSelecionado == $a['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($a['nome']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <!-- Lote: Só aparece se houver lotes disponíveis -->
+                <div class="col-md-4">
+                    <label class="form-label">Lote / Validade *</label>
+                    <?php if (!empty($lotes)): ?>
+                        <select name="lote_id" class="form-select" required>
+                            <option value="">Selecione o Lote...</option>
+                            <?php foreach ($lotes as $l): ?>
+                                <option value="<?= $l['id'] ?>">
+                                    Lote:
+                                    <?= htmlspecialchars($l['numero_lote']) ?>
+                                    (Val:
+                                    <?= $l['validade'] ? date('d/m/Y', strtotime($l['validade'])) : 'N/A' ?>)
+                                    - Saldo:
+                                    <?= $l['quantidade'] ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <input type="text" class="form-control" value="Selecione Produto/Almoxarifado" disabled>
+                    <?php endif; ?>
                 </div>
             </div>
 

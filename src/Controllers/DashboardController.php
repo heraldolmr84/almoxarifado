@@ -2,19 +2,22 @@
 namespace App\Controllers;
 
 use App\Models\Dashboard;
+use App\Core\Auth;
 
 class DashboardController
 {
     public function indexAction(): void
     {
         $model = new Dashboard();
+        $permissoes = Auth::getAlmoxarifadosPermitidos();
 
         $this->render('dashboard/index', [
             'totalProdutos' => $model->getTotalProdutos(),
-            'reqPendentes' => $model->getRequisicoesPendentes(),
-            'reqAprovadas' => $model->getRequisicoesAprovadas(),
-            'totalBackorders' => $model->getTotalBackorders(), // <-- Adicione esta linha
-            'estoqueBaixo' => $model->getProdutosEstoqueBaixo()
+            'reqPendentes'  => $model->getRequisicoesPendentes($permissoes),
+            'reqAprovadas'  => $model->getRequisicoesAprovadas($permissoes),
+            'totalBackorders' => $model->getTotalBackorders($permissoes),
+            'estoqueBaixo'  => $model->getProdutosEstoqueBaixo($permissoes),
+            'lotesVencendo' => $model->getLotesAVencer()
         ]);
     }
 

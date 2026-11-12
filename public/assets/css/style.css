@@ -1,22 +1,50 @@
 .navbar {
-    background: linear-gradient(
-        to right,
-        #0088B7 0%,
-        #00B0EB 25%,
-        #1AC6FF 50%,
-        #4DD2FF 75%,
-        #7ADEFF 100%
-    );
+    background: linear-gradient(to right,
+            #0088B7 0%,
+            #00B0EB 25%,
+            #1AC6FF 50%,
+            #4DD2FF 75%,
+            #7ADEFF 100%);
 }
 
 .nav-item .nav-link {
-    color: #fff; /* Cor do texto dos links */
+    color: #fff;
+    /* Cor do texto dos links */
 }
 
 .logo-img {
-    margin: auto 40px 0 0; /* Espaçamento entre a logo e o texto */
+    margin: auto 40px 0 0;
+    /* Espaçamento entre a logo e o texto */
 }
 
 .logo {
-   height: 68px; width: auto; object-fit: contain;
+    height: 68px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* 1. Substitui o azul padrão dos botões */
+.btn-primary {
+    background-color: #0088B7 !important;
+    border-color: #0088B7 !important;
+    color: #fff !important;
+}
+
+/* 2. Efeito ao passar o mouse (hover) - um tom mais escuro do #0088B7 */
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: #006f95 !important;
+    border-color: #006f95 !important;
+}
+
+/* 3. (Opcional) Deixa a paginação ativa com a mesma cor */
+.page-item.active .page-link {
+    background-color: #0088B7 !important;
+    border-color: #0088B7 !important;
+}
+
+/* 4. (Opcional) Deixa os cards do dashboard que eram azuis com a nova cor */
+.bg-primary {
+    background-color: #0088B7 !important;
 }

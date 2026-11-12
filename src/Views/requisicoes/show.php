@@ -35,10 +35,10 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
 
         <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL' || $requisicao['status'] === 'ATENDIDA'): ?>
             <a href="?controller=requisicao&action=print&id=<?= $requisicao['id'] ?>" target="_blank"
-            class="btn btn-outline-dark">
-            🖨️ Imprimir
-        </a>
-        <?php endif; ?>        
+                class="btn btn-outline-dark">
+                🖨️ Imprimir
+            </a>
+        <?php endif; ?>
 
         <?php
         // Lógica para exibir o botão de cancelar
@@ -91,7 +91,7 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
     <!-- Se estiver pronto para atender, abre o formulário -->
     <form id="formAtendimento" action="?controller=requisicao&action=atender" method="POST">
         <input type="hidden" name="id" value="<?= $requisicao['id'] ?>">
-        <?php endif; ?>
+    <?php endif; ?>
 
     <div class="card shadow-sm">
         <table class="table table-striped mb-0">
@@ -102,49 +102,69 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
                     <th>Qtd Aprovada</th>
                     <th>Já Atendido</th>
                     <th>Pendente</th>
-                        <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+                    <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
                         <th class="bg-success text-white">Entregar Agora</th>
-                        <?php endif; ?>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
-                    <?php foreach ($requisicao['itens'] as $item):
-                        // Tratando valores nulos para o PHP 8.2+
-                        $qtdAprovada = $item['quantidade_aprovada'] !== null ? (float) $item['quantidade_aprovada'] : null;
-                        $qtdAtendida = $item['quantidade_atendida'] !== null ? (float) $item['quantidade_atendida'] : 0.0;
-                        $pendente = $qtdAprovada !== null ? ($qtdAprovada - $qtdAtendida) : null;
-                        ?>
+                <?php foreach ($requisicao['itens'] as $item):
+                    // Tratando valores nulos para o PHP 8.2+
+                    $qtdAprovada = $item['quantidade_aprovada'] !== null ? (float) $item['quantidade_aprovada'] : null;
+                    $qtdAtendida = $item['quantidade_atendida'] !== null ? (float) $item['quantidade_atendida'] : 0.0;
+                    $pendente = $qtdAprovada !== null ? ($qtdAprovada - $qtdAtendida) : null;
+                    ?>
                     <tr>
-                        <td><?= htmlspecialchars($item['codigo']) ?></td>
-                        <td><?= htmlspecialchars($item['descricao']) ?></td>
                         <td>
-                                    <?= $qtdAprovada !== null ? number_format($qtdAprovada, 3, ',', '.') . ' ' . $item['unidade'] : '—' ?>
+                            <?= htmlspecialchars($item['codigo']) ?>
+                        </td>
+                        <td>
+                            <?= htmlspecialchars($item['descricao']) ?>
+                        </td>
+                        <td>
+                            <?= $qtdAprovada !== null ? number_format($qtdAprovada, 3, ',', '.') . ' ' . $item['unidade'] : '—' ?>
                         </td>
                         <td class="text-success fw-bold">
-                                    <?= number_format($qtdAtendida, 3, ',', '.') ?>
+                            <?= number_format($qtdAtendida, 3, ',', '.') ?>
                         </td>
                         <td class="text-danger fw-bold">
-                                    <?= $pendente !== null ? number_format($pendente, 3, ',', '.') : '—' ?>
+                            <?= $pendente !== null ? number_format($pendente, 3, ',', '.') : '—' ?>
                         </td>
 
                         <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
                             <td>
-                                        <?php if ($pendente > 0): ?>
+                                <?php if ($pendente > 0): ?>
+                                    <!-- Se o produto exigir lote, mostra o select de lotes -->
+                                    <?php if ($item['controla_lote']): ?>
+                                        <select name="lote_id[<?= $item['id'] ?>]" class="form-select form-select-sm mb-1" required>
+                                            <option value="">Selecione o Lote...</option>
+                                            <?php foreach ($lotesPorItem[$item['id']] as $lote): ?>
+                                                <option value="<?= $lote['id'] ?>">
+                                                    <?= htmlspecialchars($lote['numero_lote']) ?>
+                                                    (Val:
+                                                    <?= $lote['validade'] ? date('d/m/Y', strtotime($lote['validade'])) : 'N/A' ?>
+                                                    - Saldo:
+                                                    <?= $lote['quantidade'] ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    <?php endif; ?>
+
                                     <input type="number" step="0.001" name="quantidade_atendida[<?= $item['id'] ?>]"
                                         class="form-control form-control-sm" value="<?= $pendente ?>" max="<?= $pendente ?>"
                                         min="0">
-                                        <?php else: ?>
+                                <?php else: ?>
                                     <span class="badge bg-success">Completo</span>
-                                        <?php endif; ?>
-                            </td>
                                 <?php endif; ?>
+                            </td>
+                        <?php endif; ?>
                     </tr>
-                    <?php endforeach; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
 
-        <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
+    <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
     </form>
 <?php endif; ?>
 
@@ -159,11 +179,11 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                        <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL'): ?>
+                    <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL'): ?>
                         <div class="alert alert-warning py-2">
                             <small>Atenção: Os itens já entregues serão devolvidos ao estoque automaticamente.</small>
                         </div>
-                        <?php endif; ?>
+                    <?php endif; ?>
                     <label class="form-label">Motivo do Cancelamento *</label>
                     <textarea name="motivo" class="form-control" required placeholder="Descreva o motivo..."></textarea>
                 </div>

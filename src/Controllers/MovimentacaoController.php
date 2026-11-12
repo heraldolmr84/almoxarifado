@@ -20,6 +20,7 @@ class MovimentacaoController
     public function listAction(): void
     {
         $model = new Movimentacao();
+        $permissoes = Auth::getAlmoxarifadosPermitidos();
 
         $filtros = [
             'tipo' => $_GET['tipo'] ?? '',
@@ -28,14 +29,27 @@ class MovimentacaoController
             'data_fim' => $_GET['data_fim'] ?? ''
         ];
 
-        $movimentacoes = $model->listarRecentes($filtros);
+        // Lógica de Paginação
+        $limit = 10;
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
+        if ($page < 1)
+            $page = 1;
+        $offset = ($page - 1) * $limit;
+
+        $movimentacoes = $model->listarRecentes($filtros, $permissoes, $limit, $offset);
+        $totalRegistros = $model->countAll($filtros, $permissoes);
+        $totalPaginas = ceil($totalRegistros / $limit);
+
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
 
         $this->render('movimentacoes/list', [
             'movimentacoes' => $movimentacoes,
             'mensagem' => $mensagem,
-            'filtros' => $filtros
+            'filtros' => $filtros,
+            'page' => $page,
+            'totalPaginas' => $totalPaginas,
+            'totalRegistros' => $totalRegistros
         ]);
     }
 
@@ -77,14 +91,20 @@ class MovimentacaoController
     public function saidaAction(): void
     {
         $model = new Movimentacao();
+        $produtoId = isset($_GET['produto_id']) ? (int) $_GET['produto_id'] : 0;
+        $almoxarifadoId = isset($_GET['almoxarifado_id']) ? (int) $_GET['almoxarifado_id'] : 0;
 
-        $mensagem = $_SESSION['mensagem'] ?? null;
-        unset($_SESSION['mensagem']);
+        $lotes = [];
+        if ($produtoId > 0 && $almoxarifadoId > 0) {
+            $lotes = $model->getLotesDisponiveis($produtoId, $almoxarifadoId);
+        }
 
         $this->render('movimentacoes/saida', [
             'produtos' => $model->getProdutos(),
             'almoxarifados' => $model->getAlmoxarifados(),
-            'mensagem' => $mensagem
+            'lotes' => $lotes,
+            'produtoSelecionado' => $produtoId,
+            'almoxarifadoSelecionado' => $almoxarifadoId
         ]);
     }
 

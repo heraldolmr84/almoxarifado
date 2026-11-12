@@ -94,4 +94,26 @@
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <!-- PAGINAÇÃO -->
+    <?php if ($totalPaginas > 1): ?>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <small class="text-muted">Mostrando página <?= $page ?> de <?= $totalPaginas ?> (Total: <?= $totalRegistros ?> registros)</small>
+            <nav aria-label="Navegação de páginas">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">Anterior</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
+                        <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= $page >= $totalPaginas ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Próximo</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    <?php endif; ?>
 </div>

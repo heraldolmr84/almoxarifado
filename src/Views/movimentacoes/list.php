@@ -20,7 +20,7 @@
         <form method="GET" action="" class="row gx-2 align-items-end">
             <input type="hidden" name="controller" value="movimentacao">
             <input type="hidden" name="action" value="list">
-            
+
             <div class="col-md-2">
                 <label class="form-label mb-1 small text-muted">Tipo</label>
                 <select name="tipo" class="form-select form-select-sm">
@@ -29,26 +29,30 @@
                     <option value="SAIDA" <?= $filtros['tipo'] == 'SAIDA' ? 'selected' : '' ?>>Saída</option>
                 </select>
             </div>
-            
+
             <div class="col-md-3">
                 <label class="form-label mb-1 small text-muted">Documento (NF/Recibo)</label>
-                <input type="text" name="documento" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['documento']) ?>" placeholder="Nº do documento">
+                <input type="text" name="documento" class="form-control form-control-sm"
+                    value="<?= htmlspecialchars($filtros['documento']) ?>" placeholder="Nº do documento">
             </div>
 
             <div class="col-md-2">
                 <label class="form-label mb-1 small text-muted">Data Inicial</label>
-                <input type="date" name="data_inicio" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['data_inicio']) ?>">
+                <input type="date" name="data_inicio" class="form-control form-control-sm"
+                    value="<?= htmlspecialchars($filtros['data_inicio']) ?>">
             </div>
 
             <div class="col-md-2">
                 <label class="form-label mb-1 small text-muted">Data Final</label>
-                <input type="date" name="data_fim" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['data_fim']) ?>">
+                <input type="date" name="data_fim" class="form-control form-control-sm"
+                    value="<?= htmlspecialchars($filtros['data_fim']) ?>">
             </div>
 
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
                 <?php if (!empty($filtros['tipo']) || !empty($filtros['documento']) || !empty($filtros['data_inicio']) || !empty($filtros['data_fim'])): ?>
-                    <a href="?controller=movimentacao&action=list" class="btn btn-outline-secondary btn-sm w-100 mt-1">Limpar Filtros</a>
+                    <a href="?controller=movimentacao&action=list"
+                        class="btn btn-outline-secondary btn-sm w-100 mt-1">Limpar Filtros</a>
                 <?php endif; ?>
             </div>
         </form>
@@ -69,26 +73,58 @@
         </thead>
         <tbody>
             <?php if (empty($movimentacoes)): ?>
-                <tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma movimentação registrada.</td></tr>
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">Nenhuma movimentação registrada.</td>
+                </tr>
             <?php endif; ?>
-            
+
             <?php foreach ($movimentacoes as $m): ?>
-            <tr>
-                <td><a href="?controller=movimentacao&action=show&id=<?= $m['id'] ?>">#<?= $m['id'] ?></a></td>
-                <td><?= date('d/m/Y H:i', strtotime($m['data_movimentacao'])) ?></td>
-                <td>
-                    <span class="badge <?= $m['tipo'] == 'ENTRADA' ? 'bg-success' : 'bg-danger' ?>">
-                        <?= $m['tipo'] ?>
-                    </span>
-                    <?php if (!empty($m['subtipo'])): ?>
-                        <br><small class="text-muted"><?= htmlspecialchars($m['subtipo']) ?></small>
-                    <?php endif; ?>
-                </td>
-                <td><?= htmlspecialchars($m['documento'] ?? '—') ?></td>
-                <td><?= htmlspecialchars($m['almoxarifado'] ?? '—') ?></td>
-                <td><?= htmlspecialchars($m['usuario']) ?></td>
-            </tr>
+                <tr>
+                    <td><a href="?controller=movimentacao&action=show&id=<?= $m['id'] ?>">#<?= $m['id'] ?></a></td>
+                    <td><?= date('d/m/Y H:i', strtotime($m['data_movimentacao'])) ?></td>
+                    <td>
+                        <span class="badge <?= $m['tipo'] == 'ENTRADA' ? 'bg-success' : 'bg-danger' ?>">
+                            <?= $m['tipo'] ?>
+                        </span>
+                        <?php if (!empty($m['subtipo'])): ?>
+                            <br><small class="text-muted"><?= htmlspecialchars($m['subtipo']) ?></small>
+                        <?php endif; ?>
+                    </td>
+                    <td><?= htmlspecialchars($m['documento'] ?? '—') ?></td>
+                    <td><?= htmlspecialchars($m['almoxarifado'] ?? '—') ?></td>
+                    <td><?= htmlspecialchars($m['usuario']) ?></td>
+                </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <!-- PAGINAÇÃO -->
+    <?php if ($totalPaginas > 1): ?>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <small class="text-muted">Mostrando página
+                <?= $page ?> de
+                <?= $totalPaginas ?> (Total:
+                <?= $totalRegistros ?> registros)
+            </small>
+            <nav aria-label="Navegação de páginas">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link"
+                            href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">Anterior</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
+                        <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>">
+                                <?= $i ?>
+                            </a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= $page >= $totalPaginas ? 'disabled' : '' ?>">
+                        <a class="page-link"
+                            href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Próximo</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    <?php endif; ?>
 </div>

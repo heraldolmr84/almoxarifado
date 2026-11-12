@@ -53,7 +53,7 @@
             <div id="itens-container">
                 <div class="row mb-2 item-row">
                     <div class="col-md-8">
-                        <select name="produto_id[]" class="form-select" required <?= empty($produtosDisponiveis) ? 'disabled' : '' ?>>
+                        <select name="produto_id[]" class="form-select select2" required <?= empty($produtosDisponiveis) ? 'disabled' : '' ?>>
                             <option value="">Selecione o produto...</option>
                             <?php foreach ($produtosDisponiveis as $p): ?>
                                 <option value="<?= $p['id'] ?>">
@@ -96,6 +96,14 @@
         newRow.querySelector('input').value = '';
 
         container.appendChild(newRow);
+
+        const newSelect = newRow.querySelector('select');
+        $(newSelect).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Selecione uma opção...',
+            allowClear: true
+        });
     }
 
     function removerItem(btn) {

@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Painel de Controle</h1>
-    
+
     <a href="?controller=dashboard&action=exportar" class="btn btn-outline-success">
         📊 Exportar Estoque
     </a>
@@ -119,3 +119,40 @@ $temAlerta = !empty($estoqueBaixo);
         </div>
     </div>
 </div>
+
+<?php if (!empty($lotesVencendo)): ?>
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    ⏰ Lotes a Vencer (Próximos 30 dias)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Lote</th>
+                                <th>Almoxarifado</th>
+                                <th>Validade</th>
+                                <th>Qtd</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($lotesVencendo as $lote): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($lote['descricao']) ?></td>
+                                    <td><span class="badge bg-secondary"><?= htmlspecialchars($lote['numero_lote']) ?></span>
+                                    </td>
+                                    <td><?= htmlspecialchars($lote['almoxarifado']) ?></td>
+                                    <td class="text-danger fw-bold"><?= date('d/m/Y', strtotime($lote['validade'])) ?></td>
+                                    <td><?= number_format($lote['quantidade'], 3, ',', '.') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>

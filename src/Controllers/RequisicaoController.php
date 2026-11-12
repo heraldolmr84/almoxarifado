@@ -8,17 +8,27 @@ class RequisicaoController
 {
     public function listAction(): void
     {
-        $user = Auth::user();
+        $user = \App\Core\Auth::user();
         $model = new Requisicao();
+        $permissoes = \App\Core\Auth::getAlmoxarifadosPermitidos();
 
-        // Pega os filtros da URL, se existirem
         $filtros = [
             'status' => $_GET['status'] ?? '',
             'numero' => $_GET['numero'] ?? '',
             'departamento_id' => $_GET['departamento_id'] ?? ''
         ];
 
-        $requisicoes = $model->listarRecentes($user['id'], $user['perfil'], $filtros);
+        // Lógica de Paginação
+        $limit = 15;
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
+        if ($page < 1)
+            $page = 1;
+        $offset = ($page - 1) * $limit;
+
+        $requisicoes = $model->listarRecentes($user['id'], $user['perfil'], $filtros, $permissoes, $limit, $offset);
+        $totalRegistros = $model->countAll($user['id'], $user['perfil'], $filtros, $permissoes);
+        $totalPaginas = ceil($totalRegistros / $limit);
+
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
 
@@ -26,7 +36,10 @@ class RequisicaoController
             'requisicoes' => $requisicoes,
             'mensagem' => $mensagem,
             'filtros' => $filtros,
-            'departamentos' => $model->getDepartamentos() // Para preencher o select
+            'departamentos' => $model->getDepartamentos(),
+            'page' => $page,
+            'totalPaginas' => $totalPaginas,
+            'totalRegistros' => $totalRegistros
         ]);
     }
 
@@ -104,11 +117,22 @@ class RequisicaoController
     public function showAction(array $query): void
     {
         $id = (int) ($query['id'] ?? 0);
-        $requisicao = (new Requisicao())->find($id);
+        $model = new Requisicao();
+        $requisicao = $model->find($id);
 
         if (!$requisicao) {
             header('Location: ?controller=requisicao&action=list');
             exit;
+        }
+
+        // Busca os lotes para cada item que controla lote
+        $lotesPorItem = [];
+        if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL'])) {
+            foreach ($requisicao['itens'] as $item) {
+                if ($item['controla_lote']) {
+                    $lotesPorItem[$item['id']] = $model->getLotesDisponiveis($item['produto_id'], $requisicao['almoxarifado_id']);
+                }
+            }
         }
 
         $mensagem = $_SESSION['mensagem'] ?? null;
@@ -116,6 +140,7 @@ class RequisicaoController
 
         $this->render('requisicoes/show', [
             'requisicao' => $requisicao,
+            'lotesPorItem' => $lotesPorItem,
             'mensagem' => $mensagem
         ]);
     }
@@ -164,21 +189,31 @@ class RequisicaoController
     }
 
     //FUNÇÃO PARA ATENDER A REQUISIÇÃO (APROVADA -> ATENDIDA)
-    public function atenderAction(array $query): void
+    public function atenderAction(): void
     {
         $user = Auth::user();
         if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
-            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Apenas almoxarifes podem atender requisições.'];
-            header('Location: ?controller=requisicao&action=show&id=' . $query['id']);
+            header('Location: ?controller=requisicao&action=list');
             exit;
         }
 
         $id = (int) ($_POST['id'] ?? 0);
-        $quantidades = $_POST['quantidade_atendida'] ?? []; // Array com ID do item => Qtd
+
+        // Monta o array de atendimento: [item_id => ['qtd' => X, 'lote_id' => Y]]
+        $dadosAtendimento = [];
+        $quantidades = $_POST['quantidade_atendida'] ?? [];
+        $lotes = $_POST['lote_id'] ?? [];
+
+        foreach ($quantidades as $itemId => $qtd) {
+            $dadosAtendimento[$itemId] = [
+                'qtd' => (float) $qtd,
+                'lote_id' => !empty($lotes[$itemId]) ? (int) $lotes[$itemId] : null
+            ];
+        }
 
         try {
-            (new Requisicao())->atender($id, $quantidades, $user['id']);
-            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Requisição atendida com sucesso! Estoque atualizado.'];
+            (new Requisicao())->atender($id, $dadosAtendimento, $user['id']);
+            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Atendimento registrado com sucesso!'];
         } catch (\Exception $e) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
         }
@@ -197,7 +232,7 @@ class RequisicaoController
 
     public function backordersAction(): void
     {
-        $backorders = (new Requisicao())->listarBackorders();
+        $backorders = (new Requisicao())->listarBackorders(Auth::getAlmoxarifadosPermitidos());
         $this->render('requisicoes/backorders', ['backorders' => $backorders]);
     }
 

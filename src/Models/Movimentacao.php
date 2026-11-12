@@ -13,7 +13,7 @@ class Movimentacao
 
     public function getProdutos(): array
     {
-        return Database::getConnection()->query("SELECT id, codigo, descricao FROM produtos WHERE ativo = TRUE ORDER BY descricao")->fetchAll();
+        return Database::getConnection()->query("SELECT id, codigo, descricao, controla_lote FROM produtos WHERE ativo = TRUE ORDER BY descricao")->fetchAll();
     }
 
     public function registrarEntrada(array $data, int $usuarioId): bool
@@ -22,7 +22,33 @@ class Movimentacao
         try {
             $db->beginTransaction();
 
-            // 1. Insere o cabeçalho da movimentação
+            // 1. Descobre se o produto controla lote
+            $stmtProd = $db->prepare("SELECT controla_lote FROM produtos WHERE id = :id");
+            $stmtProd->execute(['id' => $data['produto_id']]);
+            $controlaLote = $stmtProd->fetchColumn();
+
+            $loteId = null;
+
+            // 2. Se controla lote, cria ou busca o lote existente
+            if ($controlaLote && !empty($data['numero_lote'])) {
+                $sqlLote = "SELECT id FROM lotes WHERE produto_id = :prod AND numero_lote = :num";
+                $stmtLote = $db->prepare($sqlLote);
+                $stmtLote->execute(['prod' => $data['produto_id'], 'num' => $data['numero_lote']]);
+                $loteId = $stmtLote->fetchColumn();
+
+                if (!$loteId) {
+                    $sqlNovoLote = "INSERT INTO lotes (produto_id, numero_lote, validade) VALUES (:prod, :num, :val) RETURNING id";
+                    $stmtNovoLote = $db->prepare($sqlNovoLote);
+                    $stmtNovoLote->execute([
+                        'prod' => $data['produto_id'],
+                        'num' => $data['numero_lote'],
+                        'val' => !empty($data['validade']) ? $data['validade'] : null
+                    ]);
+                    $loteId = $stmtNovoLote->fetchColumn();
+                }
+            }
+
+            // 3. Insere o cabeçalho
             $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, documento, observacao) 
                        VALUES ('ENTRADA', 'COMPRA', :usuario, :almox, :doc, :obs) RETURNING id";
             $stmtMov = $db->prepare($sqlMov);
@@ -34,13 +60,14 @@ class Movimentacao
             ]);
             $movimentacaoId = $stmtMov->fetchColumn();
 
-            // 2. Insere os itens (a trigger do banco vai atualizar o saldo_estoque automaticamente)
-            $sqlItem = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade, valor_unitario) 
-                        VALUES (:mov_id, :produto, :qtd, :valor)";
+            // 4. Insere o item com o lote_id
+            $sqlItem = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, lote_id, quantidade, valor_unitario) 
+                        VALUES (:mov_id, :produto, :lote, :qtd, :valor)";
             $stmtItem = $db->prepare($sqlItem);
             $stmtItem->execute([
                 'mov_id' => $movimentacaoId,
                 'produto' => $data['produto_id'],
+                'lote' => $loteId,
                 'qtd' => $data['quantidade'],
                 'valor' => !empty($data['valor_unitario']) ? $data['valor_unitario'] : null
             ]);
@@ -49,11 +76,11 @@ class Movimentacao
             return true;
         } catch (\Exception $e) {
             $db->rollBack();
-            throw $e; // Repassa o erro para o Controller
+            throw $e;
         }
     }
 
-    public function listarRecentes(array $filtros = []): array
+    public function listarRecentes(array $filtros = [], array $almoxPermitidos = [], int $limit = 10, int $offset = 0): array
     {
         $sql = "SELECT m.id, m.data_movimentacao, m.tipo, m.subtipo, m.documento, 
                        u.nome AS usuario, 
@@ -66,31 +93,71 @@ class Movimentacao
 
         $params = [];
 
+        if (!empty($almoxPermitidos)) {
+            $inQuery = implode(',', array_map('intval', $almoxPermitidos));
+            $sql .= " AND (m.almoxarifado_origem_id IN ($inQuery) OR m.almoxarifado_destino_id IN ($inQuery))";
+        }
+
         if (!empty($filtros['tipo'])) {
             $sql .= " AND m.tipo = :tipo";
             $params['tipo'] = $filtros['tipo'];
         }
-
         if (!empty($filtros['documento'])) {
             $sql .= " AND m.documento ILIKE :documento";
             $params['documento'] = '%' . $filtros['documento'] . '%';
         }
-
         if (!empty($filtros['data_inicio'])) {
             $sql .= " AND m.data_movimentacao >= :data_inicio";
             $params['data_inicio'] = $filtros['data_inicio'] . ' 00:00:00';
         }
-
         if (!empty($filtros['data_fim'])) {
             $sql .= " AND m.data_movimentacao <= :data_fim";
             $params['data_fim'] = $filtros['data_fim'] . ' 23:59:59';
         }
 
-        $sql .= " ORDER BY m.id DESC LIMIT 100";
+        $sql .= " ORDER BY m.id DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = Database::getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function countAll(array $filtros = [], array $almoxPermitidos = []): int
+    {
+        $sql = "SELECT COUNT(*) FROM movimentacoes m WHERE 1=1";
+        $params = [];
+
+        if (!empty($almoxPermitidos)) {
+            $inQuery = implode(',', array_map('intval', $almoxPermitidos));
+            $sql .= " AND (m.almoxarifado_origem_id IN ($inQuery) OR m.almoxarifado_destino_id IN ($inQuery))";
+        }
+
+        if (!empty($filtros['tipo'])) {
+            $sql .= " AND m.tipo = :tipo";
+            $params['tipo'] = $filtros['tipo'];
+        }
+        if (!empty($filtros['documento'])) {
+            $sql .= " AND m.documento ILIKE :documento";
+            $params['documento'] = '%' . $filtros['documento'] . '%';
+        }
+        if (!empty($filtros['data_inicio'])) {
+            $sql .= " AND m.data_movimentacao >= :data_inicio";
+            $params['data_inicio'] = $filtros['data_inicio'] . ' 00:00:00';
+        }
+        if (!empty($filtros['data_fim'])) {
+            $sql .= " AND m.data_movimentacao <= :data_fim";
+            $params['data_fim'] = $filtros['data_fim'] . ' 23:59:59';
+        }
 
         $stmt = Database::getConnection()->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return (int) $stmt->fetchColumn();
     }
 
     // Método auxiliar para consultar o saldo atual
@@ -132,12 +199,13 @@ class Movimentacao
             $movimentacaoId = $stmtMov->fetchColumn();
 
             // 3. Insere os itens (A trigger do banco vai subtrair do saldo_estoque)
-            $sqlItem = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade) 
-                        VALUES (:mov_id, :produto, :qtd)";
+            $sqlItem = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, lote_id, quantidade) 
+                        VALUES (:mov_id, :produto, :lote, :qtd)";
             $stmtItem = $db->prepare($sqlItem);
             $stmtItem->execute([
                 'mov_id' => $movimentacaoId,
                 'produto' => $data['produto_id'],
+                'lote' => !empty($data['lote_id']) ? $data['lote_id'] : null,
                 'qtd' => $data['quantidade']
             ]);
 
@@ -175,10 +243,12 @@ class Movimentacao
             return null;
 
         // Busca os itens da movimentação
-        $sqlItens = "SELECT i.*, p.codigo, p.descricao, u.sigla AS unidade
+        $sqlItens = "SELECT i.*, p.codigo, p.descricao, u.sigla AS unidade,
+                            l.numero_lote, l.validade
                        FROM itens_movimentacao i
                        JOIN produtos p ON p.id = i.produto_id
                        JOIN unidades_medida u ON u.id = p.unidade_medida_id
+                       LEFT JOIN lotes l ON l.id = i.lote_id
                       WHERE i.movimentacao_id = :id";
 
         $stmtItens = $db->prepare($sqlItens);
@@ -239,5 +309,17 @@ class Movimentacao
             $db->rollBack();
             throw $e;
         }
+    }
+
+    public function getLotesDisponiveis(int $produtoId, int $almoxarifadoId): array
+    {
+        $sql = "SELECT l.id, l.numero_lote, l.validade, s.quantidade 
+                  FROM lotes l
+                  JOIN saldo_estoque s ON s.lote_id = l.id
+                 WHERE l.produto_id = :prod AND s.almoxarifado_id = :almox AND s.quantidade > 0
+                 ORDER BY l.validade ASC NULLS LAST"; // FEFO: Vence primeiro, sai primeiro
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['prod' => $produtoId, 'almox' => $almoxarifadoId]);
+        return $stmt->fetchAll();
     }
 }

@@ -27,7 +27,7 @@
         </div>
 
         <hr>
-        
+
         <div class="row">
             <?php if ($mov['tipo'] == 'ENTRADA'): ?>
                 <div class="col-md-6 mb-3">
@@ -49,7 +49,7 @@
 
         <?php if (!empty($mov['numero_requisicao'])): ?>
             <div class="alert alert-info py-2 mb-0">
-                Esta movimentação foi gerada pelo atendimento da 
+                Esta movimentação foi gerada pelo atendimento da
                 <a href="?controller=requisicao&action=show&id=<?= $mov['requisicao_id'] ?>" class="alert-link">
                     Requisição <?= $mov['numero_requisicao'] ?>
                 </a>.
@@ -72,34 +72,50 @@
             <tr>
                 <th>Código</th>
                 <th>Produto</th>
+                <th>Lote / Validade</th> <!-- NOVA COLUNA -->
                 <th class="text-end">Quantidade</th>
                 <th class="text-end">Valor Unitário</th>
                 <th class="text-end">Subtotal</th>
             </tr>
         </thead>
         <tbody>
-            <?php 
+            <?php
             $totalGeral = 0;
-            foreach ($mov['itens'] as $item): 
+            foreach ($mov['itens'] as $item):
                 $subtotal = ($item['valor_unitario'] ?? 0) * $item['quantidade'];
                 $totalGeral += $subtotal;
-            ?>
-            <tr>
-                <td><?= htmlspecialchars($item['codigo']) ?></td>
-                <td><?= htmlspecialchars($item['descricao']) ?></td>
-                <td class="text-end"><?= number_format($item['quantidade'], 3, ',', '.') ?> <?= $item['unidade'] ?></td>
-                <td class="text-end"><?= $item['valor_unitario'] ? 'R$ ' . number_format($item['valor_unitario'], 2, ',', '.') : '—' ?></td>
-                <td class="text-end"><?= $item['valor_unitario'] ? 'R$ ' . number_format($subtotal, 2, ',', '.') : '—' ?></td>
-            </tr>
+                ?>
+                <tr>
+                    <td><?= htmlspecialchars($item['codigo']) ?></td>
+                    <td><?= htmlspecialchars($item['descricao']) ?></td>
+
+                    <!-- NOVA COLUNA DE EXIBIÇÃO DO LOTE -->
+                    <td>
+                        <?php if (!empty($item['numero_lote'])): ?>
+                            <strong><?= htmlspecialchars($item['numero_lote']) ?></strong><br>
+                            <small class="text-muted">Val:
+                                <?= $item['validade'] ? date('d/m/Y', strtotime($item['validade'])) : 'N/A' ?></small>
+                        <?php else: ?>
+                            <span class="text-muted">—</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td class="text-end"><?= number_format($item['quantidade'], 3, ',', '.') ?>     <?= $item['unidade'] ?></td>
+                    <td class="text-end">
+                        <?= $item['valor_unitario'] ? 'R$ ' . number_format($item['valor_unitario'], 2, ',', '.') : '—' ?>
+                    </td>
+                    <td class="text-end">
+                        <?= $item['valor_unitario'] ? 'R$ ' . number_format($subtotal, 2, ',', '.') : '—' ?></td>
+                </tr>
             <?php endforeach; ?>
         </tbody>
         <?php if ($totalGeral > 0): ?>
-        <tfoot class="table-light">
-            <tr>
-                <th colspan="4" class="text-end">Total Geral:</th>
-                <th class="text-end">R$ <?= number_format($totalGeral, 2, ',', '.') ?></th>
-            </tr>
-        </tfoot>
+            <tfoot class="table-light">
+                <tr>
+                    <th colspan="4" class="text-end">Total Geral:</th>
+                    <th class="text-end">R$ <?= number_format($totalGeral, 2, ',', '.') ?></th>
+                </tr>
+            </tfoot>
         <?php endif; ?>
     </table>
 </div>

@@ -34,7 +34,7 @@
             <div class="row mb-4">
                 <div class="col-md-8">
                     <label class="form-label">Produto *</label>
-                    <select name="produto_id" class="form-select" required>
+                    <select name="produto_id" class="form-select select2" required>
                         <option value="">Selecione o produto...</option>
                         <?php foreach ($produtos as $p): ?>
                             <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['codigo'] . ' - ' . $p['descricao']) ?></option>

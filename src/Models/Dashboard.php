@@ -31,7 +31,18 @@ class Dashboard
                  GROUP BY p.id, p.codigo, p.descricao, p.estoque_minimo
                 HAVING COALESCE(SUM(s.quantidade), 0) <= p.estoque_minimo
                  ORDER BY quantidade_atual ASC";
-                 
+
         return Database::getConnection()->query($sql)->fetchAll();
+    }
+
+    public function getTotalBackorders(): int
+    {
+        // Conta os itens individuais que estão pendentes (quantidade atendida < aprovada)
+        $sql = "SELECT COUNT(*) 
+                  FROM requisicoes_itens ri
+                  JOIN requisicoes r ON r.id = ri.requisicao_id
+                 WHERE r.status IN ('ATENDIDA_PARCIAL', 'AGUARDANDO_ESTOQUE')
+                   AND ri.quantidade_atendida < ri.quantidade_aprovada";
+        return (int) Database::getConnection()->query($sql)->fetchColumn();
     }
 }

@@ -27,6 +27,17 @@ $action = $isEdit ? '?controller=usuario&action=update' : '?controller=usuario&a
                         <option value="ALMOXARIFE" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'ALMOXARIFE') ? 'selected' : '' ?>>Almoxarife (Aprovador)</option>
                         <option value="ADMIN" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'ADMIN') ? 'selected' : '' ?>>Administrador</option>
                     </select>
+                    <div class="col-md-4">
+                    <label class="form-label">Departamento</label>
+                    <select name="departamento_id" class="form-select">
+                        <option value="">Nenhum (Admin/Almoxarife Geral)</option>
+                        <?php foreach ($departamentos as $d): ?>
+                            <option value="<?= $d['id'] ?>" <?= (isset($usuario['departamento_id']) && $usuario['departamento_id'] == $d['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($d['nome']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Senha <?= $isEdit ? '(deixe em branco para não alterar)' : '*' ?></label>

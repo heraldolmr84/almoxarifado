@@ -11,14 +11,32 @@ class Requisicao
         return Database::getConnection()->query("SELECT id, nome FROM departamentos WHERE ativo = TRUE ORDER BY nome")->fetchAll();
     }
 
-    public function getAlmoxarifados(): array
+    // Busca os almoxarifados que o departamento tem acesso
+    public function getAlmoxarifadosPorDepartamento(int $departamentoId): array
     {
-        return Database::getConnection()->query("SELECT id, nome FROM almoxarifados WHERE ativo = TRUE ORDER BY nome")->fetchAll();
+        $sql = "SELECT a.id, a.nome 
+                  FROM almoxarifados a
+                  JOIN departamentos_almoxarifados da ON da.almoxarifado_id = a.id
+                 WHERE da.departamento_id = :dep_id AND a.ativo = TRUE";
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['dep_id' => $departamentoId]);
+        return $stmt->fetchAll();
     }
 
-    public function getProdutos(): array
+    public function getProdutos(int $almoxarifadoId): array
     {
-        return Database::getConnection()->query("SELECT id, codigo, descricao FROM produtos WHERE ativo = TRUE ORDER BY descricao")->fetchAll();
+        // O JOIN com saldo_estoque garante que traremos a coluna 'quantidade'
+        $sql = "SELECT p.id, p.codigo, p.descricao, s.quantidade 
+                  FROM produtos p
+                  JOIN saldo_estoque s ON s.produto_id = p.id
+                 WHERE p.ativo = TRUE 
+                   AND s.almoxarifado_id = :almox 
+                   AND s.quantidade > 0
+                 ORDER BY p.descricao";
+                 
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['almox' => $almoxarifadoId]);
+        return $stmt->fetchAll();
     }
 
     public function create(array $data, int $usuarioId): int

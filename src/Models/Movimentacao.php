@@ -28,9 +28,9 @@ class Movimentacao
             $stmtMov = $db->prepare($sqlMov);
             $stmtMov->execute([
                 'usuario' => $usuarioId,
-                'almox'   => $data['almoxarifado_id'],
-                'doc'     => $data['documento'] ?? null,
-                'obs'     => $data['observacao'] ?? null
+                'almox' => $data['almoxarifado_id'],
+                'doc' => $data['documento'] ?? null,
+                'obs' => $data['observacao'] ?? null
             ]);
             $movimentacaoId = $stmtMov->fetchColumn();
 
@@ -39,10 +39,10 @@ class Movimentacao
                         VALUES (:mov_id, :produto, :qtd, :valor)";
             $stmtItem = $db->prepare($sqlItem);
             $stmtItem->execute([
-                'mov_id'  => $movimentacaoId,
+                'mov_id' => $movimentacaoId,
                 'produto' => $data['produto_id'],
-                'qtd'     => $data['quantidade'],
-                'valor'   => !empty($data['valor_unitario']) ? $data['valor_unitario'] : null
+                'qtd' => $data['quantidade'],
+                'valor' => !empty($data['valor_unitario']) ? $data['valor_unitario'] : null
             ]);
 
             $db->commit();
@@ -63,7 +63,7 @@ class Movimentacao
                   LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
                   LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
                  WHERE 1=1";
-                 
+
         $params = [];
 
         if (!empty($filtros['tipo'])) {
@@ -87,13 +87,13 @@ class Movimentacao
         }
 
         $sql .= " ORDER BY m.id DESC LIMIT 100";
-        
+
         $stmt = Database::getConnection()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
-        // Método auxiliar para consultar o saldo atual
+    // Método auxiliar para consultar o saldo atual
     public function getSaldo(int $produtoId, int $almoxarifadoId): float
     {
         $stmt = Database::getConnection()->prepare(
@@ -107,10 +107,10 @@ class Movimentacao
     public function registrarSaida(array $data, int $usuarioId): bool
     {
         $db = Database::getConnection();
-        
+
         // 1. Verifica se há saldo suficiente antes de tentar salvar
         $saldoAtual = $this->getSaldo($data['produto_id'], $data['almoxarifado_id']);
-        
+
         if ($saldoAtual < $data['quantidade']) {
             throw new \Exception("Saldo insuficiente. O saldo atual deste produto neste almoxarifado é de {$saldoAtual}.");
         }
@@ -125,9 +125,9 @@ class Movimentacao
             $stmtMov->execute([
                 'subtipo' => $data['subtipo'] ?? 'CONSUMO',
                 'usuario' => $usuarioId,
-                'almox'   => $data['almoxarifado_id'],
-                'doc'     => $data['documento'] ?? null,
-                'obs'     => $data['observacao'] ?? null
+                'almox' => $data['almoxarifado_id'],
+                'doc' => $data['documento'] ?? null,
+                'obs' => $data['observacao'] ?? null
             ]);
             $movimentacaoId = $stmtMov->fetchColumn();
 
@@ -136,9 +136,9 @@ class Movimentacao
                         VALUES (:mov_id, :produto, :qtd)";
             $stmtItem = $db->prepare($sqlItem);
             $stmtItem->execute([
-                'mov_id'  => $movimentacaoId,
+                'mov_id' => $movimentacaoId,
                 'produto' => $data['produto_id'],
-                'qtd'     => $data['quantidade']
+                'qtd' => $data['quantidade']
             ]);
 
             $db->commit();
@@ -152,7 +152,7 @@ class Movimentacao
     public function find(int $id): ?array
     {
         $db = Database::getConnection();
-        
+
         $sql = "SELECT m.*, 
                        u.nome AS usuario,
                        ad.nome AS almox_destino, 
@@ -166,12 +166,13 @@ class Movimentacao
                   LEFT JOIN departamentos d ON d.id = m.departamento_id
                   LEFT JOIN requisicoes r ON r.id = m.requisicao_id
                  WHERE m.id = :id";
-                 
+
         $stmt = $db->prepare($sql);
         $stmt->execute(['id' => $id]);
         $mov = $stmt->fetch();
-        
-        if (!$mov) return null;
+
+        if (!$mov)
+            return null;
 
         // Busca os itens da movimentação
         $sqlItens = "SELECT i.*, p.codigo, p.descricao, u.sigla AS unidade
@@ -179,11 +180,64 @@ class Movimentacao
                        JOIN produtos p ON p.id = i.produto_id
                        JOIN unidades_medida u ON u.id = p.unidade_medida_id
                       WHERE i.movimentacao_id = :id";
-                      
+
         $stmtItens = $db->prepare($sqlItens);
         $stmtItens->execute(['id' => $id]);
         $mov['itens'] = $stmtItens->fetchAll();
 
         return $mov;
+    }
+
+    // Função para registrar transferência entre almoxarifados
+    public function registrarTransferencia(array $data, int $usuarioId): bool
+    {
+        if ($data['almoxarifado_origem_id'] == $data['almoxarifado_destino_id']) {
+            throw new \Exception("O almoxarifado de origem e destino não podem ser iguais.");
+        }
+
+        $db = Database::getConnection();
+        $saldoAtual = $this->getSaldo($data['produto_id'], $data['almoxarifado_origem_id']);
+
+        if ($saldoAtual < $data['quantidade']) {
+            throw new \Exception("Saldo insuficiente na origem. Disponível: {$saldoAtual}");
+        }
+
+        try {
+            $db->beginTransaction();
+
+            // 1. MOVIMENTAÇÃO DE SAÍDA (Origem)
+            $sqlSaida = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_origem_id, observacao) 
+                         VALUES ('SAIDA', 'TRANSFERENCIA', :usuario, :origem, :obs) RETURNING id";
+            $stmtSaida = $db->prepare($sqlSaida);
+            $stmtSaida->execute([
+                'usuario' => $usuarioId,
+                'origem' => $data['almoxarifado_origem_id'],
+                'obs' => 'Transferência para outro almoxarifado'
+            ]);
+            $movSaidaId = $stmtSaida->fetchColumn();
+
+            $db->prepare("INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade) VALUES (:mov, :prod, :qtd)")
+                ->execute(['mov' => $movSaidaId, 'prod' => $data['produto_id'], 'qtd' => $data['quantidade']]);
+
+            // 2. MOVIMENTAÇÃO DE ENTRADA (Destino)
+            $sqlEntrada = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, observacao) 
+                           VALUES ('ENTRADA', 'TRANSFERENCIA', :usuario, :destino, :obs) RETURNING id";
+            $stmtEntrada = $db->prepare($sqlEntrada);
+            $stmtEntrada->execute([
+                'usuario' => $usuarioId,
+                'destino' => $data['almoxarifado_destino_id'],
+                'obs' => 'Recebimento via transferência'
+            ]);
+            $movEntradaId = $stmtEntrada->fetchColumn();
+
+            $db->prepare("INSERT INTO itens_movimentacao (movimentacao_id, produto_id, quantidade) VALUES (:mov, :prod, :qtd)")
+                ->execute(['mov' => $movEntradaId, 'prod' => $data['produto_id'], 'qtd' => $data['quantidade']]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
     }
 }

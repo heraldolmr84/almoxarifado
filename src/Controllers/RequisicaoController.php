@@ -10,7 +10,7 @@ class RequisicaoController
     {
         $user = Auth::user();
         $model = new Requisicao();
-        
+
         // Pega os filtros da URL, se existirem
         $filtros = [
             'status' => $_GET['status'] ?? '',
@@ -21,9 +21,9 @@ class RequisicaoController
         $requisicoes = $model->listarRecentes($user['id'], $user['perfil'], $filtros);
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
-        
+
         $this->render('requisicoes/list', [
-            'requisicoes' => $requisicoes, 
+            'requisicoes' => $requisicoes,
             'mensagem' => $mensagem,
             'filtros' => $filtros,
             'departamentos' => $model->getDepartamentos() // Para preencher o select
@@ -33,29 +33,64 @@ class RequisicaoController
     public function createAction(): void
     {
         $model = new Requisicao();
-        $mensagem = $_SESSION['mensagem'] ?? null;
-        unset($_SESSION['mensagem']);
+        $user = Auth::user(); // Pega os dados da sessão
+
+        // 1. Descobre o departamento do usuário logado
+        $departamentoId = $user['departamento_id'] ?? 0;
+
+        if (!$departamentoId) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Você não possui um departamento vinculado. Contate o administrador.'];
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
+
+        // 2. Busca os almoxarifados que o departamento dele tem acesso
+        $almoxarifadosDisponiveis = $model->getAlmoxarifadosPorDepartamento($departamentoId);
+
+        // 3. Captura qual almoxarifado ele escolheu na tela
+        $almoxarifadoId = isset($_GET['almoxarifado_id']) ? (int) $_GET['almoxarifado_id'] : 0;
+
+        // Se ele tem acesso a apenas um almoxarifado, seleciona ele automaticamente
+        if (count($almoxarifadosDisponiveis) === 1) {
+            $almoxarifadoId = $almoxarifadosDisponiveis[0]['id'];
+        }
+
+        // 4. Busca os produtos (só se ele já escolheu o almoxarifado)
+        $produtosDisponiveis = [];
+        if ($almoxarifadoId > 0) {
+            $produtosDisponiveis = $model->getProdutos($almoxarifadoId);
+        }
 
         $this->render('requisicoes/form', [
-            'departamentos' => $model->getDepartamentos(),
-            'almoxarifados' => $model->getAlmoxarifados(),
-            'produtos' => $model->getProdutos(),
-            'mensagem' => $mensagem
+            'almoxarifadosDisponiveis' => $almoxarifadosDisponiveis,
+            'produtosDisponiveis' => $produtosDisponiveis,
+            'departamentoSelecionado' => $departamentoId,
+            'almoxarifadoSelecionado' => $almoxarifadoId,
+            'mensagem' => $_SESSION['mensagem'] ?? null
         ]);
+        unset($_SESSION['mensagem']);
     }
 
     public function storeAction(): void
     {
+        // 1. Pegamos os dados do usuário logado ANTES da validação
+        $user = Auth::user();
+
+        // 2. Injetamos o departamento do usuário no $_POST
+        // (Se o usuário for Admin e não tiver departamento, fica nulo)
+        $_POST['departamento_id'] = $user['departamento_id'] ?? null;
+
+        // 3. Validação (agora o departamento estará preenchido se o usuário tiver um)
         if (empty($_POST['departamento_id']) || empty($_POST['almoxarifado_id']) || empty($_POST['justificativa'])) {
-            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha o cabeçalho da requisição.'];
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro: Verifique se você possui um departamento vinculado e preencha todos os campos.'];
             header('Location: ?controller=requisicao&action=create');
             exit;
         }
 
         try {
-            $user = Auth::user();
+            // 4. Salva no banco (o $_POST já vai com o departamento_id correto)
             (new Requisicao())->create($_POST, $user['id']);
-            
+
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Requisição criada como Rascunho! Envie-a para aprovação.'];
             header('Location: ?controller=requisicao&action=list');
         } catch (\Exception $e) {
@@ -66,7 +101,7 @@ class RequisicaoController
     }
 
     //açoes de requisição: aprovar, rejeitar, atender
-        public function showAction(array $query): void
+    public function showAction(array $query): void
     {
         $id = (int) ($query['id'] ?? 0);
         $requisicao = (new Requisicao())->find($id);
@@ -115,12 +150,13 @@ class RequisicaoController
     {
         $user = Auth::user();
         if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
-            header('Location: ?controller=requisicao&action=list'); exit;
+            header('Location: ?controller=requisicao&action=list');
+            exit;
         }
 
         $id = (int) ($_POST['id'] ?? 0);
         $motivo = $_POST['motivo'] ?? 'Sem motivo informado.';
-        
+
         (new Requisicao())->rejeitar($id, $user['id'], $motivo);
         $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Requisição Rejeitada.'];
         header('Location: ?controller=requisicao&action=show&id=' . $id);
@@ -146,7 +182,7 @@ class RequisicaoController
         } catch (\Exception $e) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
         }
-        
+
         header('Location: ?controller=requisicao&action=show&id=' . $id);
         exit;
     }
@@ -175,20 +211,23 @@ class RequisicaoController
 
         // Validação de permissão
         if (!$requisicao) {
-            header('Location: ?controller=requisicao&action=list'); exit;
+            header('Location: ?controller=requisicao&action=list');
+            exit;
         }
-        
+
         // Operador só cancela as próprias requisições se ainda forem rascunho ou aguardando aprovação
         if ($user['perfil'] === 'OPERADOR') {
             if ($requisicao['solicitante_id'] != $user['id'] || !in_array($requisicao['status'], ['RASCUNHO', 'AGUARDANDO_APROVACAO'])) {
                 $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Você não tem permissão para cancelar esta requisição.'];
-                header('Location: ?controller=requisicao&action=show&id=' . $id); exit;
+                header('Location: ?controller=requisicao&action=show&id=' . $id);
+                exit;
             }
         }
 
         if (empty($motivo)) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Você precisa informar o motivo do cancelamento.'];
-            header('Location: ?controller=requisicao&action=show&id=' . $id); exit;
+            header('Location: ?controller=requisicao&action=show&id=' . $id);
+            exit;
         }
 
         try {
@@ -200,5 +239,21 @@ class RequisicaoController
 
         header('Location: ?controller=requisicao&action=show&id=' . $id);
         exit;
+    }
+
+    // Função para gerar o PDF da requisição
+    public function printAction(array $query): void
+    {
+        $id = (int) ($query['id'] ?? 0);
+        $requisicao = (new Requisicao())->find($id);
+
+        if (!$requisicao) {
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
+
+        // Renderização customizada (sem o header e footer padrão do sistema)
+        extract(['requisicao' => $requisicao]);
+        require __DIR__ . '/../Views/requisicoes/print.php';
     }
 }

@@ -12,7 +12,8 @@ class Auth
             'id' => $usuario['id'],
             'nome' => $usuario['nome'],
             'email' => $usuario['email'],
-            'perfil' => $usuario['perfil']
+            'perfil' => $usuario['perfil'],
+            'departamento_id' => $usuario['departamento_id'] 
         ];
     }
 

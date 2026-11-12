@@ -7,8 +7,11 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Movimentações de Estoque</h1>
-    <a href="?controller=movimentacao&action=entrada" class="btn btn-success">Nova Entrada</a>
-    <a href="?controller=movimentacao&action=saida" class="btn btn-danger">Nova Saída</a>
+    <div class="d-flex gap-2">
+        <a href="?controller=movimentacao&action=entrada" class="btn btn-success">Nova Entrada</a>
+        <a href="?controller=movimentacao&action=saida" class="btn btn-danger">Nova Saída</a>
+        <a href="?controller=movimentacao&action=transferencia" class="btn btn-info text-white">Transferência</a>
+    </div>
 </div>
 
 <!-- Formulário de Busca -->

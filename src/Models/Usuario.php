@@ -28,31 +28,29 @@ class Usuario
 
     public function create(array $data): bool
     {
-        $sql = "INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo) VALUES (:nome, :email, :senha, :perfil, TRUE)";
+        $sql = "INSERT INTO usuarios (nome, email, senha_hash, perfil, departamento_id, ativo) 
+                VALUES (:nome, :email, :senha, :perfil, :departamento_id, TRUE)";
         $stmt = Database::getConnection()->prepare($sql);
         return $stmt->execute([
             'nome'   => $data['nome'],
             'email'  => $data['email'],
             'senha'  => password_hash($data['senha'], PASSWORD_DEFAULT),
-            'perfil' => $data['perfil']
+            'perfil' => $data['perfil'],
+            'departamento_id' => !empty($data['departamento_id']) ? $data['departamento_id'] : null
         ]);
     }
 
     public function update(int $id, array $data): bool
     {
-        // Se o campo senha estiver vazio, atualiza apenas os outros dados
+        $depId = !empty($data['departamento_id']) ? $data['departamento_id'] : null;
         if (empty($data['senha'])) {
-            $sql = "UPDATE usuarios SET nome = :nome, email = :email, perfil = :perfil WHERE id = :id";
+            $sql = "UPDATE usuarios SET nome = :nome, email = :email, perfil = :perfil, departamento_id = :dep_id WHERE id = :id";
             $stmt = Database::getConnection()->prepare($sql);
-            return $stmt->execute(['nome' => $data['nome'], 'email' => $data['email'], 'perfil' => $data['perfil'], 'id' => $id]);
+            return $stmt->execute(['nome' => $data['nome'], 'email' => $data['email'], 'perfil' => $data['perfil'], 'dep_id' => $depId, 'id' => $id]);
         } else {
-            // Se a senha foi preenchida, atualiza ela também
-            $sql = "UPDATE usuarios SET nome = :nome, email = :email, perfil = :perfil, senha_hash = :senha WHERE id = :id";
+            $sql = "UPDATE usuarios SET nome = :nome, email = :email, perfil = :perfil, departamento_id = :dep_id, senha_hash = :senha WHERE id = :id";
             $stmt = Database::getConnection()->prepare($sql);
-            return $stmt->execute([
-                'nome' => $data['nome'], 'email' => $data['email'], 'perfil' => $data['perfil'],
-                'senha' => password_hash($data['senha'], PASSWORD_DEFAULT), 'id' => $id
-            ]);
+            return $stmt->execute(['nome' => $data['nome'], 'email' => $data['email'], 'perfil' => $data['perfil'], 'dep_id' => $depId, 'senha' => password_hash($data['senha'], PASSWORD_DEFAULT), 'id' => $id]);
         }
     }
 

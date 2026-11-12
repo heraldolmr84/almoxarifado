@@ -6,7 +6,7 @@ use App\Core\Auth;
 
 class MovimentacaoController
 {
-    
+
     public function __construct()
     {
         $user = \App\Core\Auth::user();
@@ -20,7 +20,7 @@ class MovimentacaoController
     public function listAction(): void
     {
         $model = new Movimentacao();
-        
+
         $filtros = [
             'tipo' => $_GET['tipo'] ?? '',
             'documento' => $_GET['documento'] ?? '',
@@ -31,9 +31,9 @@ class MovimentacaoController
         $movimentacoes = $model->listarRecentes($filtros);
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
-        
+
         $this->render('movimentacoes/list', [
-            'movimentacoes' => $movimentacoes, 
+            'movimentacoes' => $movimentacoes,
             'mensagem' => $mensagem,
             'filtros' => $filtros
         ]);
@@ -64,7 +64,7 @@ class MovimentacaoController
         try {
             $usuarioId = Auth::user()['id'];
             (new Movimentacao())->registrarEntrada($_POST, $usuarioId);
-            
+
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Entrada de estoque registrada com sucesso!'];
             header('Location: ?controller=movimentacao&action=list');
         } catch (\Exception $e) {
@@ -74,13 +74,13 @@ class MovimentacaoController
         exit;
     }
 
-        public function saidaAction(): void
+    public function saidaAction(): void
     {
         $model = new Movimentacao();
 
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
-        
+
         $this->render('movimentacoes/saida', [
             'produtos' => $model->getProdutos(),
             'almoxarifados' => $model->getAlmoxarifados(),
@@ -99,7 +99,7 @@ class MovimentacaoController
         try {
             $usuarioId = Auth::user()['id'];
             (new Movimentacao())->registrarSaida($_POST, $usuarioId);
-            
+
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Saída de estoque registrada com sucesso!'];
             header('Location: ?controller=movimentacao&action=list');
         } catch (\Exception $e) {
@@ -131,5 +131,40 @@ class MovimentacaoController
         require __DIR__ . '/../Views/layout/header.php';
         require __DIR__ . "/../Views/{$view}.php";
         require __DIR__ . '/../Views/layout/footer.php';
+    }
+
+    // Função para criar a ação de transferência de estoque entre almoxarifados
+    public function transferenciaAction(): void
+    {
+        $model = new Movimentacao();
+        $mensagem = $_SESSION['mensagem'] ?? null;
+        unset($_SESSION['mensagem']);
+
+        $this->render('movimentacoes/transferencia', [
+            'produtos' => $model->getProdutos(),
+            'almoxarifados' => $model->getAlmoxarifados(),
+            'mensagem' => $mensagem
+        ]);
+    }
+
+    public function storeTransferenciaAction(): void
+    {
+        if (empty($_POST['produto_id']) || empty($_POST['almoxarifado_origem_id']) || empty($_POST['almoxarifado_destino_id']) || empty($_POST['quantidade']) || $_POST['quantidade'] <= 0) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha todos os campos corretamente.'];
+            header('Location: ?controller=movimentacao&action=transferencia');
+            exit;
+        }
+
+        try {
+            $usuarioId = Auth::user()['id'];
+            (new Movimentacao())->registrarTransferencia($_POST, $usuarioId);
+
+            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Transferência realizada com sucesso!'];
+            header('Location: ?controller=movimentacao&action=list');
+        } catch (\Exception $e) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
+            header('Location: ?controller=movimentacao&action=transferencia');
+        }
+        exit;
     }
 }

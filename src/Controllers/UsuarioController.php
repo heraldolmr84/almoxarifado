@@ -23,7 +23,9 @@ class UsuarioController
 
     public function createAction(): void
     {
-        $this->render('usuarios/form');
+        // Pega os departamentos para preencher o select
+        $departamentos = \App\Core\Database::getConnection()->query("SELECT id, nome FROM departamentos WHERE ativo = TRUE ORDER BY nome")->fetchAll();
+        $this->render('usuarios/form', ['departamentos' => $departamentos]);
     }
 
     public function storeAction(): void
@@ -48,8 +50,10 @@ class UsuarioController
     public function editAction(array $query): void
     {
         $usuario = (new Usuario())->find((int) ($query['id'] ?? 0));
+        $departamentos = \App\Core\Database::getConnection()->query("SELECT id, nome FROM departamentos WHERE ativo = TRUE ORDER BY nome")->fetchAll();
+        
         if (!$usuario) { header('Location: ?controller=usuario&action=list'); exit; }
-        $this->render('usuarios/form', ['usuario' => $usuario]);
+        $this->render('usuarios/form', ['usuario' => $usuario, 'departamentos' => $departamentos]);
     }
 
     public function updateAction(): void

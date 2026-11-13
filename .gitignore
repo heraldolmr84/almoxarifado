@@ -1,0 +1,16 @@
+# Variáveis de ambiente (NUNCA subir senhas)
+.env
+
+# Dependências do Composer
+/vendor/
+
+# Arquivos de log do sistema
+emails_enviados.log
+*.log
+
+# Configurações do VS Code
+.vscode/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db

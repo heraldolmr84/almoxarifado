@@ -16,7 +16,7 @@
 
             <!-- Lado Direito: Versão de Compilação -->
             <div class="col-md-4 text-center text-md-end">
-                <small class="text-muted">
+                <small class="text">
                     Versão <?= date('Y.m.d') ?> <!-- Gera a versão baseada na data atual -->
                 </small>
             </div>
@@ -28,6 +28,9 @@
 
 <!-- jQuery (necessário para o Select2) -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- jQuery Mask Plugin (Para CNPJ, CPF, Telefone) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

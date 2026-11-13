@@ -17,7 +17,8 @@ class UsuarioController
     public function listAction(): void
     {
         $usuarios = (new Usuario())->all();
-        $mensagem = $_SESSION['mensagem'] ?? null; unset($_SESSION['mensagem']);
+        $mensagem = $_SESSION['mensagem'] ?? null;
+        unset($_SESSION['mensagem']);
         $this->render('usuarios/list', ['usuarios' => $usuarios, 'mensagem' => $mensagem]);
     }
 
@@ -32,7 +33,8 @@ class UsuarioController
     {
         if (empty($_POST['nome']) || empty($_POST['email']) || empty($_POST['senha']) || empty($_POST['perfil'])) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha todos os campos obrigatórios.'];
-            header('Location: ?controller=usuario&action=create'); exit;
+            header('Location: ?controller=usuario&action=create');
+            exit;
         }
 
         try {
@@ -51,8 +53,11 @@ class UsuarioController
     {
         $usuario = (new Usuario())->find((int) ($query['id'] ?? 0));
         $departamentos = \App\Core\Database::getConnection()->query("SELECT id, nome FROM departamentos WHERE ativo = TRUE ORDER BY nome")->fetchAll();
-        
-        if (!$usuario) { header('Location: ?controller=usuario&action=list'); exit; }
+
+        if (!$usuario) {
+            header('Location: ?controller=usuario&action=list');
+            exit;
+        }
         $this->render('usuarios/form', ['usuario' => $usuario, 'departamentos' => $departamentos]);
     }
 
@@ -62,9 +67,11 @@ class UsuarioController
             (new Usuario())->update((int) $_POST['id'], $_POST);
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Usuário atualizado!'];
         } catch (\PDOException $e) {
-            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao atualizar (e-mail duplicado?).'];
+            // Mostra o erro real do banco na tela
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro no banco: ' . $e->getMessage()];
         }
-        header('Location: ?controller=usuario&action=list'); exit;
+        header('Location: ?controller=usuario&action=list');
+        exit;
     }
 
     public function deleteAction(array $query): void
@@ -76,7 +83,8 @@ class UsuarioController
             (new Usuario())->delete($id);
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Usuário desativado!'];
         }
-        header('Location: ?controller=usuario&action=list'); exit;
+        header('Location: ?controller=usuario&action=list');
+        exit;
     }
 
     private function render(string $view, array $data = []): void

@@ -6,18 +6,29 @@ use App\Core\Auth;
 
 class DashboardController
 {
+
+    // Construtor inicial
+    public function __construct()
+    {
+        $user = Auth::user();
+        // Se for Operador, manda de volta para a tela de requisições
+        if ($user['perfil'] === 'OPERADOR') {
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
+    }
     public function indexAction(): void
     {
         $model = new Dashboard();
         $permissoes = Auth::getAlmoxarifadosPermitidos();
 
         $this->render('dashboard/index', [
-            'totalProdutos' => $model->getTotalProdutos(),
-            'reqPendentes'  => $model->getRequisicoesPendentes($permissoes),
-            'reqAprovadas'  => $model->getRequisicoesAprovadas($permissoes),
-            'totalBackorders' => $model->getTotalBackorders($permissoes),
-            'estoqueBaixo'  => $model->getProdutosEstoqueBaixo($permissoes),
-            'lotesVencendo' => $model->getLotesAVencer()
+            'totalProdutos'     => $model->getTotalProdutos(),
+            'reqPendentes'      => $model->getRequisicoesPendentes($permissoes),
+            'reqAprovadas'      => $model->getRequisicoesAprovadas($permissoes),
+            'totalBackorders'   => $model->getTotalBackorders($permissoes),
+            'estoqueBaixo'      => $model->getProdutosEstoqueBaixo($permissoes),
+            'lotesVencendo'     => $model->getLotesAVencer()
         ]);
     }
 

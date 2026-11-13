@@ -9,6 +9,14 @@ class ProdutoController
     public function __construct()
     {
         $user = \App\Core\Auth::user();
+
+        // Se não estiver logado, redireciona para o login
+        if (!$user) {
+            header('Location: ?controller=auth&action=login');
+            exit;
+        }
+
+        // Se for Operador, bloqueia o acesso
         if ($user['perfil'] === 'OPERADOR') {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado. Você não tem permissão para gerenciar o catálogo.'];
             header('Location: ?controller=requisicao&action=list');
@@ -19,7 +27,7 @@ class ProdutoController
     public function listAction(): void
     {
         $model = new Produto();
-        
+
         $filtros = [
             'codigo' => $_GET['codigo'] ?? '',
             'descricao' => $_GET['descricao'] ?? '',
@@ -28,11 +36,12 @@ class ProdutoController
 
         // --- INÍCIO DA LÓGICA DE PAGINAÇÃO ---
         $limit = 10; // Quantos itens por página
-        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-        if ($page < 1) $page = 1;
-        
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
+        if ($page < 1)
+            $page = 1;
+
         $offset = ($page - 1) * $limit;
-        
+
         $produtos = $model->all($filtros, $limit, $offset);
         $totalRegistros = $model->countAll($filtros);
         $totalPaginas = ceil($totalRegistros / $limit);
@@ -40,7 +49,7 @@ class ProdutoController
 
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
-        
+
         $this->render('produtos/list', [
             'produtos' => $produtos,
             'categorias' => $model->getCategorias(),
@@ -66,14 +75,15 @@ class ProdutoController
         $this->render('produtos/form', [
             'produto' => $produto,
             'categorias' => $model->getCategorias(),
-            'unidades' => $model->getUnidades()
+            'unidades' => $model->getUnidades(),
+            'fornecedores' => (new \App\Models\Fornecedor())->all()
         ]);
     }
 
     public function updateAction(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
-        
+
         if (empty($_POST['codigo']) || empty($_POST['descricao']) || empty($_POST['unidade_medida_id'])) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha os campos obrigatórios.'];
             header("Location: ?controller=produto&action=edit&id={$id}");
@@ -87,7 +97,7 @@ class ProdutoController
             $msg = $e->getCode() == 23505 ? 'Já existe um produto com este código.' : 'Erro ao atualizar: ' . $e->getMessage();
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $msg];
         }
-        
+
         header('Location: ?controller=produto&action=list');
         exit;
     }
@@ -95,14 +105,14 @@ class ProdutoController
     public function deleteAction(array $query): void
     {
         $id = (int) ($query['id'] ?? 0);
-        
+
         try {
             (new Produto())->delete($id);
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto desativado com sucesso!'];
         } catch (\PDOException $e) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao desativar o produto.'];
         }
-        
+
         header('Location: ?controller=produto&action=list');
         exit;
     }
@@ -112,10 +122,11 @@ class ProdutoController
         $model = new Produto();
         $categorias = $model->getCategorias();
         $unidades = $model->getUnidades();
-        
+
         $this->render('produtos/form', [
             'categorias' => $categorias,
-            'unidades' => $unidades
+            'unidades' => $unidades,
+            'fornecedores' => (new \App\Models\Fornecedor())->all()
         ]);
     }
 

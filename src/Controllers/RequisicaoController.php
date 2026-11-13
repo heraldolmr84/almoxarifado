@@ -8,9 +8,9 @@ class RequisicaoController
 {
     public function listAction(): void
     {
-        $user = \App\Core\Auth::user();
+        $user = Auth::user();
         $model = new Requisicao();
-        $permissoes = \App\Core\Auth::getAlmoxarifadosPermitidos();
+        $permissoes = Auth::getAlmoxarifadosPermitidos();
 
         $filtros = [
             'status' => $_GET['status'] ?? '',
@@ -232,6 +232,12 @@ class RequisicaoController
 
     public function backordersAction(): void
     {
+        $user = Auth::user();
+        if ($user['perfil'] === 'OPERADOR') {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado.'];
+            header('Location: ?controller=requisicao&action=list');
+            exit;
+        }
         $backorders = (new Requisicao())->listarBackorders(Auth::getAlmoxarifadosPermitidos());
         $this->render('requisicoes/backorders', ['backorders' => $backorders]);
     }

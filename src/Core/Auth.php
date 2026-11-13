@@ -13,7 +13,8 @@ class Auth
             'nome' => $usuario['nome'],
             'email' => $usuario['email'],
             'perfil' => $usuario['perfil'],
-            'departamento_id' => $usuario['departamento_id']
+            'departamento_id' => $usuario['departamento_id'],
+            'deve_trocar_senha' => $usuario['deve_trocar_senha']
         ];
     }
 

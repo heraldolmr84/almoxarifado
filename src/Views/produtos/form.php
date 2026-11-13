@@ -1,5 +1,5 @@
-<?php 
-$isEdit = isset($produto); 
+<?php
+$isEdit = isset($produto);
 $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&action=store';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -10,7 +10,7 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
 <div class="card shadow-sm">
     <div class="card-body">
         <form action="<?= $action ?>" method="POST">
-            
+
             <?php if ($isEdit): ?>
                 <input type="hidden" name="id" value="<?= $produto['id'] ?>">
             <?php endif; ?>
@@ -18,13 +18,31 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label class="form-label">Código (SKU) *</label>
-                    <input type="text" name="codigo" class="form-control" required maxlength="50" 
-                           value="<?= htmlspecialchars($produto['codigo'] ?? '') ?>">
+                    <input type="text" name="codigo" class="form-control" required maxlength="50"
+                        value="<?= htmlspecialchars($produto['codigo'] ?? '') ?>">
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Descrição *</label>
-                    <input type="text" name="descricao" class="form-control" required maxlength="200" 
-                           value="<?= htmlspecialchars($produto['descricao'] ?? '') ?>">
+                    <input type="text" name="descricao" class="form-control" required maxlength="200"
+                        value="<?= htmlspecialchars($produto['descricao'] ?? '') ?>">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Fornecedor Principal</label>
+                    <!-- O atributo list aponta para o ID do datalist -->
+                    <input type="text" name="fornecedor_nome" class="form-control" list="listaFornecedores"
+                        placeholder="Digite para buscar ou cadastrar um novo..."
+                        value="<?= htmlspecialchars($produto['fornecedor_nome'] ?? '') ?>">
+
+                    <!-- O Datalist é invisível, ele só fornece as sugestões -->
+                    <datalist id="listaFornecedores">
+                        <?php foreach ($fornecedores as $f): ?>
+                            <option value="<?= htmlspecialchars($f['razao_social']) ?>">
+                            <?php endforeach; ?>
+                    </datalist>
+                    <small class="text-muted">Se o fornecedor não existir, ele será cadastrado automaticamente.</small>
                 </div>
             </div>
 
@@ -53,14 +71,14 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Estoque Mínimo</label>
-                    <input type="number" step="0.001" name="estoque_minimo" class="form-control" 
-                           value="<?= htmlspecialchars($produto['estoque_minimo'] ?? '0') ?>">
+                    <input type="number" step="0.001" name="estoque_minimo" class="form-control"
+                        value="<?= htmlspecialchars($produto['estoque_minimo'] ?? '0') ?>">
                 </div>
             </div>
 
             <div class="mb-4 form-check">
                 <input type="checkbox" name="controla_lote" value="1" class="form-check-input" id="controlaLote"
-                       <?= (isset($produto['controla_lote']) && $produto['controla_lote'] == 't') ? 'checked' : '' ?>>
+                    <?= (isset($produto['controla_lote']) && $produto['controla_lote'] == 't') ? 'checked' : '' ?>>
                 <label class="form-check-label" for="controlaLote">Este produto exige controle de lote/validade?</label>
             </div>
 

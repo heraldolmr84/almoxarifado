@@ -16,11 +16,11 @@ class Mailer
             $mail->isSMTP();
             $mail->SMTPDebug = 3;
             $mail->Debugoutput = 'error_log';
-            $mail->Host = 'smtp.gmail.com'; // Ex: smtp.gmail.com
+            $mail->Host = 'smtp.email.com'; // Ex: smtp.gmail.com
             $mail->SMTPAuth = true;
             $mail->Timeout = 10; // Desiste de tentar conectar após 10 segundos
-            $mail->Username = 'heraldo.ribeiro@ufms.br';         // Seu e-mail ou user do mailtrap
-            $mail->Password = 'svuxtddvypyzqyfr';           // Sua senha ou pass do mailtrap
+            $mail->Username = 'usuario@email.com';         // Seu e-mail ou user do mailtrap
+            $mail->Password = 'sua_senha';           // Sua senha ou pass do mailtrap
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;                      // Mailtrap usa 2525. Gmail usa 587
 

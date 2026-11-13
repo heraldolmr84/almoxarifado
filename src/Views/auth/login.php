@@ -29,11 +29,11 @@
 <body>
 
     <div style="text-align: center;">
-        <img src="assets/img/grafo_facom.png" alt="Logo Facom" style="max-width: 150px; margin-bottom: 10px;">
+        <img src="assets/img/grafo_facom.png" alt="Logo Facom" style="max-width: 100px; margin-bottom: 10px;">
         <h4 style="font-size: 1.2em">Sistema de Controle de Almoxarifado</h4>
     </div>
 
-    <div class="card card-login shadow-sm" style="border: solid .5px">
+    <div class="card card-login shadow-sm">
 
         <div class="card-body p-4">
 

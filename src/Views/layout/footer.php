@@ -37,7 +37,7 @@
 
 <!-- Inicializador automático do Select2 -->
 <script>
-    $(document).ready(function () {
+    $(document).ready(function() {
         // Aplica o Select2 em qualquer select que tenha a classe "select2"
         $('.select2').select2({
             theme: 'bootstrap-5',
@@ -45,6 +45,28 @@
             placeholder: 'Selecione uma opção...',
             allowClear: true
         });
+
+        // 2. LÓGICA DO SKU
+        if ($('#selectCategoria').length > 0) {
+            // Escuta os dois tipos de eventos para garantir
+            $('#selectCategoria').on('change select2:select', function(e) {
+                const categoriaId = $(this).val();
+                const campoSku = $('#campoSku');
+
+                if (!categoriaId) {
+                    campoSku.val('');
+                    return;
+                }
+
+                campoSku.val('Gerando...');
+
+                fetch('?controller=produto&action=apiProximoSku&categoria_id=' + categoriaId)
+                    .then(response => response.text())
+                    .then(sku => {
+                        campoSku.val(sku.trim());
+                    });
+            });
+        }
     });
 </script>
 </body>

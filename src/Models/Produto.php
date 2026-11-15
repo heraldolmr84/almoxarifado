@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use App\Core\Database;
@@ -157,5 +158,36 @@ class Produto
     {
         $stmt = Database::getConnection()->prepare("UPDATE produtos SET ativo = FALSE WHERE id = :id");
         return $stmt->execute(['id' => $id]);
+    }
+
+    public function gerarProximoSKU(int $categoriaId): string
+    {
+        $db = Database::getConnection();
+
+        // 1. Busca o prefixo da categoria
+        $stmt = $db->prepare("SELECT prefixo_sku FROM categorias WHERE id = :id");
+        $stmt->execute(['id' => $categoriaId]);
+        $prefixo = $stmt->fetchColumn() ?: 'GEN'; // GEN = Genérico, se não tiver prefixo
+
+        $anoAtual = date('y'); // Retorna '26' para 2026
+        $baseSKU = "{$prefixo}-{$anoAtual}-";
+
+        // 2. Busca o último SKU cadastrado para esta categoria neste ano
+        // Ex: Busca por 'INF-26-%' e ordena decrescente para pegar o maior
+        $stmt = $db->prepare("SELECT codigo FROM produtos WHERE codigo LIKE :base ORDER BY codigo DESC LIMIT 1");
+        $stmt->execute(['base' => $baseSKU . '%']);
+        $ultimoSKU = $stmt->fetchColumn();
+
+        if ($ultimoSKU) {
+            // Pega os 3 últimos dígitos e soma 1 (Ex: de '001' vira 002)
+            $numeroSequencial = (int) substr($ultimoSKU, -3) + 1;
+        } else {
+            $numeroSequencial = 1;
+        }
+
+        // 3. Formata o número com 3 dígitos (001, 002, etc)
+        $sequencialFormatado = str_pad($numeroSequencial, 3, '0', STR_PAD_LEFT);
+
+        return $baseSKU . $sequencialFormatado;
     }
 }

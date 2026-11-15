@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Models\Produto;
@@ -132,7 +133,13 @@ class ProdutoController
 
     public function storeAction(): void
     {
-        // Validação básica
+        // 1. REDE DE SEGURANÇA: Força a geração do SKU no PHP
+        // Isso garante que, mesmo que o JavaScript falhe, o código será gerado.
+        if (!empty($_POST['categoria_id'])) {
+            $_POST['codigo'] = (new Produto())->gerarProximoSKU((int)$_POST['categoria_id']);
+        }
+
+        // 2. Validação básica
         if (empty($_POST['codigo']) || empty($_POST['descricao']) || empty($_POST['unidade_medida_id'])) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha os campos obrigatórios (Código, Descrição e Unidade).'];
             header('Location: ?controller=produto&action=create');
@@ -140,20 +147,35 @@ class ProdutoController
         }
 
         try {
+            // REMOVIDO: A linha que gerava o SKU novamente aqui dentro foi apagada
             (new Produto())->create($_POST);
+
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto cadastrado com sucesso!'];
             header('Location: ?controller=produto&action=list');
             exit;
         } catch (\PDOException $e) {
-
-            // Vamos forçar a mostrar o erro real do Postgres na tela
-            //die("ERRO NO BANCO DE DADOS: " . $e->getMessage());
-            // Erro comum: código duplicado (SKU)
-            $msg = $e->getCode() == 23505 ? 'Já existe um produto com este código.' : 'Erro ao cadastrar.';
+            // Se der erro de duplicidade (código 23505)
+            $msg = $e->getCode() == 23505 ? 'Já existe um produto com este código.' : 'Erro ao cadastrar: ' . $e->getMessage();
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $msg];
             header('Location: ?controller=produto&action=create');
             exit;
         }
+    }
+
+    public function apiProximoSkuAction(): void
+    {
+        // Limpa qualquer buffer de saída para não sujar o JSON/Texto
+        ob_clean();
+
+        $categoriaId = isset($_GET['categoria_id']) ? (int)$_GET['categoria_id'] : 0;
+
+        if ($categoriaId > 0) {
+            $sku = (new Produto())->gerarProximoSKU($categoriaId);
+            echo $sku;
+        } else {
+            echo "Selecione a categoria";
+        }
+        exit; // Impede que o layout do sistema seja carregado
     }
 
     private function render(string $view, array $data = []): void

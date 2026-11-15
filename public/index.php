@@ -1,8 +1,8 @@
 <?php
 // public/index.php
 
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../logs/php_errors.log'); 
@@ -11,8 +11,8 @@ ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 require __DIR__ . '/../vendor/autoload.php';
 
 // Carrega as variáveis de ambiente do arquivo .env
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-$dotenv->load();
+// Carrega as variáveis de ambiente usando o leitor nativo
+App\Core\Env::carregar(__DIR__ . '/../.env');
 
 session_start();
 

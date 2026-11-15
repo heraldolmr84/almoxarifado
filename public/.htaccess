@@ -1,0 +1,12 @@
+# Redireciona todo o tráfego da raiz para a pasta public
+RewriteEngine On
+RewriteRule ^$ public/ [L]
+RewriteRule (.*) public/$1 [L]
+
+# Bloqueia o acesso direto a qualquer arquivo fora da pasta public
+<FilesMatch "\.(env|json|sql|lock|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+Options -Indexes

@@ -17,9 +17,10 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
 
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label class="form-label">Código (SKU) *</label>
-                    <input type="text" name="codigo" class="form-control" required maxlength="50"
-                        value="<?= htmlspecialchars($produto['codigo'] ?? '') ?>">
+                    <label class="form-label">Código (SKU)</label>
+                    <input type="text" name="codigo" id="campoSku" class="form-control bg-light" readonly
+                        value="<?= htmlspecialchars($produto['codigo'] ?? '') ?>"
+                        placeholder="Gerado pela categoria...">
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Descrição *</label>
@@ -49,7 +50,7 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label class="form-label">Categoria</label>
-                    <select name="categoria_id" class="form-select">
+                    <select name="categoria_id" id="selectCategoria" class="form-select">
                         <option value="">Selecione...</option>
                         <?php foreach ($categorias as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= (isset($produto['categoria_id']) && $produto['categoria_id'] == $cat['id']) ? 'selected' : '' ?>>
@@ -88,3 +89,7 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
         </form>
     </div>
 </div>
+
+<script>
+    
+</script>

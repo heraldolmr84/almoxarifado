@@ -12,6 +12,11 @@ $action = $isEdit ? '?controller=categoria&action=update' : '?controller=categor
                 <label class="form-label">Nome da Categoria *</label>
                 <input type="text" name="nome" class="form-control" required value="<?= htmlspecialchars($categoria['nome'] ?? '') ?>">
             </div>
+
+            <div class="mb-3">
+                <label class="form-label">Prefixo (para geração do SKU) *</label>
+                <input type="text" name="sku" class="form-control" required value="<?= htmlspecialchars($categoria['sku'] ?? '') ?>">
+            </div>
             
             <div class="mb-3">
                 <label class="form-label">Categoria Pai (Opcional)</label>

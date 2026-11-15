@@ -1,9 +1,6 @@
 # Variáveis de ambiente (NUNCA subir senhas)
 .env
 
-# Dependências do Composer
-/vendor/
-
 # Arquivos de log do sistema
 emails_enviados.log
 *.log

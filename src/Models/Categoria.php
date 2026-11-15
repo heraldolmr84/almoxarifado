@@ -9,7 +9,7 @@ class Categoria
     public function all(): array
     {
         $stmt = Database::getConnection()->query("
-            SELECT c.*, p.nome AS pai_nome 
+            SELECT c.*, p.nome AS pai_nome, c.prefixo_sku AS prefixo
               FROM categorias c
               LEFT JOIN categorias p ON p.id = c.categoria_pai_id
              WHERE c.ativo = TRUE
@@ -45,18 +45,20 @@ class Categoria
 
     public function create(array $data): bool
     {
-        $stmt = Database::getConnection()->prepare("INSERT INTO categorias (nome, categoria_pai_id) VALUES (:nome, :pai)");
+        $stmt = Database::getConnection()->prepare("INSERT INTO categorias (nome, categoria_pai_id, prefixo_sku) VALUES (:nome, :pai, :sku)");
         $stmt->bindValue(':nome', $data['nome']);
         $stmt->bindValue(':pai', !empty($data['categoria_pai_id']) ? $data['categoria_pai_id'] : null);
+        $stmt->bindValue(':sku', $data['sku']);
         return $stmt->execute();
     }
 
     public function update(int $id, array $data): bool
     {
-        $stmt = Database::getConnection()->prepare("UPDATE categorias SET nome = :nome, categoria_pai_id = :pai WHERE id = :id");
+        $stmt = Database::getConnection()->prepare("UPDATE categorias SET nome = :nome, categoria_pai_id = :pai, prefixo_sku = :sku WHERE id = :id");
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':nome', $data['nome']);
         $stmt->bindValue(':pai', !empty($data['categoria_pai_id']) ? $data['categoria_pai_id'] : null);
+        $stmt->bindValue(':sku', $data['sku']);
         return $stmt->execute();
     }
 

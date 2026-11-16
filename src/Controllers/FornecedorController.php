@@ -8,8 +8,11 @@ class FornecedorController
 {
     public function __construct()
     {
-        if (!in_array(Auth::user()['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
-            die("Acesso negado.");
+        $user = \App\Core\Auth::user();
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado.'];
+            header('Location: ?controller=pedidocompra&action=list');
+            exit;
         }
     }
 

@@ -9,9 +9,9 @@ class UnidadeController
     public function __construct()
     {
         $user = \App\Core\Auth::user();
-        if ($user['perfil'] === 'OPERADOR') {
-            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado. Você não tem permissão para gerenciar o catálogo.'];
-            header('Location: ?controller=requisicao&action=list');
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado.'];
+            header('Location: ?controller=pedidocompra&action=list');
             exit;
         }
     }
@@ -33,7 +33,8 @@ class UnidadeController
     {
         if (empty($_POST['sigla']) || empty($_POST['descricao'])) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Preencha todos os campos.'];
-            header('Location: ?controller=unidade&action=create'); exit;
+            header('Location: ?controller=unidade&action=create');
+            exit;
         }
         try {
             (new UnidadeMedida())->create($_POST);
@@ -49,7 +50,10 @@ class UnidadeController
     public function editAction(array $query): void
     {
         $unidade = (new UnidadeMedida())->find((int) ($query['id'] ?? 0));
-        if (!$unidade) { header('Location: ?controller=unidade&action=list'); exit; }
+        if (!$unidade) {
+            header('Location: ?controller=unidade&action=list');
+            exit;
+        }
         $this->render('unidades/form', ['unidade' => $unidade]);
     }
 
@@ -61,7 +65,8 @@ class UnidadeController
         } catch (\PDOException $e) {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao atualizar: Sigla duplicada.'];
         }
-        header('Location: ?controller=unidade&action=list'); exit;
+        header('Location: ?controller=unidade&action=list');
+        exit;
     }
 
     public function deleteAction(array $query): void
@@ -74,7 +79,8 @@ class UnidadeController
             $msg = $e->getCode() == 23503 ? 'Não é possível excluir: há produtos usando esta unidade.' : 'Erro ao excluir.';
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $msg];
         }
-        header('Location: ?controller=unidade&action=list'); exit;
+        header('Location: ?controller=unidade&action=list');
+        exit;
     }
 
     private function render(string $view, array $data = []): void

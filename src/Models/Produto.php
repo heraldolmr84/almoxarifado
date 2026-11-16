@@ -91,6 +91,17 @@ class Produto
         return $produto ?: null;
     }
 
+    public function getProdutosParaCompra(): array
+    {
+        // Traz todos os produtos ativos, não importa se tem estoque ou não
+        $sql = "SELECT id, codigo, descricao 
+                  FROM produtos 
+                 WHERE ativo = TRUE 
+                 ORDER BY descricao";
+
+        return Database::getConnection()->query($sql)->fetchAll();
+    }
+
     public function create(array $data): bool
     {
 

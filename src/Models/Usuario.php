@@ -31,16 +31,24 @@ class Usuario
     {
         $sql = "INSERT INTO usuarios (nome, email, senha_hash, perfil, departamento_id, deve_trocar_senha, ativo) 
                 VALUES (:nome, :email, :senha, :perfil, :departamento_id, :trocar, TRUE)";
+
         $stmt = Database::getConnection()->prepare($sql);
 
-        return $stmt->execute([
-            'nome' => $data['nome'],
-            'email' => $data['email'],
-            'senha' => password_hash($data['senha'], PASSWORD_DEFAULT),
-            'perfil' => $data['perfil'],
-            'departamento_id' => !empty($data['departamento_id']) ? $data['departamento_id'] : null,
-            'trocar' => isset($data['deve_trocar_senha']) // Se o checkbox foi marcado, vai true
-        ]);
+        $stmt->bindValue(':nome', $data['nome']);
+        $stmt->bindValue(':email', $data['email']);
+        $stmt->bindValue(':senha', password_hash($data['senha'], PASSWORD_DEFAULT));
+        $stmt->bindValue(':perfil', $data['perfil']);
+
+        if (!empty($data['departamento_id'])) {
+            $stmt->bindValue(':departamento_id', (int) $data['departamento_id'], PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':departamento_id', null, PDO::PARAM_NULL);
+        }
+
+        // O SEGREDO ESTÁ AQUI: Forçar o envio como Booleano
+        $stmt->bindValue(':trocar', isset($data['deve_trocar_senha']), PDO::PARAM_BOOL);
+
+        return $stmt->execute();
     }
 
     public function update(int $id, array $data): bool

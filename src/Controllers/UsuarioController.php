@@ -42,7 +42,8 @@ class UsuarioController
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Usuário cadastrado!'];
             header('Location: ?controller=usuario&action=list');
         } catch (\PDOException $e) {
-            $msg = $e->getCode() == 23505 ? 'Este e-mail já está cadastrado.' : 'Erro ao cadastrar.';
+            // Mostra o erro real se houver problema no banco
+            $msg = $e->getCode() == 23505 ? 'Este e-mail já está cadastrado.' : 'Erro ao cadastrar: ' . $e->getMessage();
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $msg];
             header('Location: ?controller=usuario&action=create');
         }

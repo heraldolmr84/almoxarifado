@@ -37,9 +37,7 @@ $user = Auth::user();
 
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
-
-                        <!-- Produtos e Movimentações (Admin e Almoxarife) -->
-                        <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])): ?>
+                        <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
                             <li class="nav-item">
                                 <a class="nav-link" href="?controller=dashboard&action=index">Início</a>
                             </li>
@@ -54,13 +52,18 @@ $user = Auth::user();
                             </li>
                         <?php endif; ?>
 
-                        <!-- Requisições (Todos) -->
                         <li class="nav-item">
                             <a class="nav-link" href="?controller=requisicao&action=list">Requisições</a>
                         </li>
 
+                        <!-- COMPRAS: Visível para Admin, Almoxarife e Gerente -->
+                        <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
+                            <li class="nav-item">
+                                <a class="nav-link" href="?controller=pedidoCompra&action=list">Compras</a>
+                            </li>
+                        <?php endif; ?>
 
-                        <!-- MENU DROPDOWN: ADMINISTRAÇÃO -->
+                        <!-- ADMINISTRAÇÃO: Apenas Admin e Almoxarife (Gerente não vê) -->
                         <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])): ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
@@ -75,7 +78,6 @@ $user = Auth::user();
                                     <li><a class="dropdown-item" href="?controller=almoxarifado&action=list">Almoxarifados</a>
                                     </li>
 
-                                    <!-- Usuários: Apenas Admin -->
                                     <?php if ($user['perfil'] === 'ADMIN'): ?>
                                         <li>
                                             <hr class="dropdown-divider">

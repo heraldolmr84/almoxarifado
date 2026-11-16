@@ -5,13 +5,13 @@ use App\Models\Categoria;
 
 class CategoriaController
 {
-    
+
     public function __construct()
     {
         $user = \App\Core\Auth::user();
-        if ($user['perfil'] === 'OPERADOR') {
-            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado. Você não tem permissão para gerenciar o catálogo.'];
-            header('Location: ?controller=requisicao&action=list');
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Acesso negado.'];
+            header('Location: ?controller=pedidocompra&action=list');
             exit;
         }
     }
@@ -21,7 +21,7 @@ class CategoriaController
         $categorias = (new Categoria())->all();
         $mensagem = $_SESSION['mensagem'] ?? null;
         unset($_SESSION['mensagem']);
-        
+
         $this->render('categorias/list', ['categorias' => $categorias, 'mensagem' => $mensagem]);
     }
 
@@ -70,7 +70,7 @@ class CategoriaController
     public function updateAction(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
-        
+
         try {
             (new Categoria())->update($id, $_POST);
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Categoria atualizada com sucesso!'];

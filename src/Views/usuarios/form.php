@@ -28,6 +28,7 @@ $action = $isEdit ? '?controller=usuario&action=update' : '?controller=usuario&a
                         <option value="OPERADOR" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'OPERADOR') ? 'selected' : '' ?>>Operador (Solicitante)</option>
                         <option value="ALMOXARIFE" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'ALMOXARIFE') ? 'selected' : '' ?>>Almoxarife (Aprovador)</option>
                         <option value="ADMIN" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'ADMIN') ? 'selected' : '' ?>>Administrador</option>
+                        <option value="GERENTE" <?= (isset($usuario['perfil']) && $usuario['perfil'] == 'GERENTE') ? 'selected' : '' ?>>Gerência (Aprovador de Compras)</option>
                     </select>
                     <div class="col-md-4">
                         <label class="form-label">Departamento</label>

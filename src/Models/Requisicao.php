@@ -101,6 +101,17 @@ class Requisicao
         if ($perfil === 'OPERADOR') {
             $sql .= " AND r.solicitante_id = :usuario";
             $params['usuario'] = $usuarioId;
+        } else {
+            // Almoxarife e Gerente veem tudo do seu almoxarifado, MENOS rascunhos
+            if (!empty($almoxPermitidos)) {
+                $inQuery = implode(',', array_map('intval', $almoxPermitidos));
+                $sql .= " AND r.almoxarifado_id IN ($inQuery)";
+            }
+
+            // REGRA NOVA: Almoxarife e Gerente não veem Rascunhos
+            if (in_array($perfil, ['ALMOXARIFE', 'GERENTE'])) {
+                $sql .= " AND r.status != 'RASCUNHO'";
+            }
         }
 
         if (!empty($almoxPermitidos)) {
@@ -142,6 +153,16 @@ class Requisicao
         if ($perfil === 'OPERADOR') {
             $sql .= " AND r.solicitante_id = :usuario";
             $params['usuario'] = $usuarioId;
+        } else {
+            if (!empty($almoxPermitidos)) {
+                $inQuery = implode(',', array_map('intval', $almoxPermitidos));
+                $sql .= " AND r.almoxarifado_id IN ($inQuery)";
+            }
+
+            // REGRA NOVA: Almoxarife e Gerente não veem Rascunhos
+            if (in_array($perfil, ['ALMOXARIFE', 'GERENTE'])) {
+                $sql .= " AND r.status != 'RASCUNHO'";
+            }
         }
 
         if (!empty($almoxPermitidos)) {
@@ -430,5 +451,105 @@ class Requisicao
         $stmt = Database::getConnection()->prepare($sql);
         $stmt->execute(['prod' => $produtoId, 'almox' => $almoxarifadoId]);
         return $stmt->fetchAll();
+    }
+
+    public function devolver(int $id, array $dadosDevolucao, int $usuarioId): bool
+    {
+        $db = Database::getConnection();
+        $req = $this->find($id);
+
+        if (!$req || !in_array($req['status'], ['ATENDIDA', 'ATENDIDA_PARCIAL'])) {
+            throw new \Exception("Esta requisição não permite devolução.");
+        }
+
+        try {
+            $db->beginTransaction();
+            $temDevolucao = false;
+
+            // 1. Cria a movimentação de ENTRADA (Devolução)
+            $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, departamento_id, requisicao_id, observacao) 
+                       VALUES ('ENTRADA', 'DEVOLUCAO', :usuario, :almox, :dep, :req_id, :obs) RETURNING id";
+            $stmtMov = $db->prepare($sqlMov);
+            $stmtMov->execute([
+                'usuario' => $usuarioId,
+                'almox' => $req['almoxarifado_id'],
+                'dep' => $req['departamento_id'],
+                'req_id' => $req['id'],
+                'obs' => 'Devolução de material da ' . $req['numero']
+            ]);
+            $movimentacaoId = $stmtMov->fetchColumn();
+
+            $sqlItemMov = "INSERT INTO itens_movimentacao (movimentacao_id, produto_id, lote_id, quantidade) VALUES (:mov, :prod, :lote, :qtd)";
+            $stmtItemMov = $db->prepare($sqlItemMov);
+
+            $sqlUpdateReqItem = "UPDATE requisicoes_itens SET quantidade_atendida = quantidade_atendida - :qtd WHERE id = :id";
+            $stmtUpdateReqItem = $db->prepare($sqlUpdateReqItem);
+
+            // 2. Processa item por item
+            foreach ($req['itens'] as $item) {
+                $qtdDevolver = (float) ($dadosDevolucao['qtd_devolver'][$item['id']] ?? 0);
+                $loteId = !empty($dadosDevolucao['lote_id'][$item['id']]) ? (int) $dadosDevolucao['lote_id'][$item['id']] : null;
+
+                if ($qtdDevolver > 0) {
+                    if ($qtdDevolver > $item['quantidade_atendida']) {
+                        throw new \Exception("A quantidade a devolver ({$qtdDevolver}) é maior que a quantidade em posse do setor ({$item['quantidade_atendida']}).");
+                    }
+
+                    $temDevolucao = true;
+
+                    // Entra no estoque
+                    $stmtItemMov->execute([
+                        'mov' => $movimentacaoId,
+                        'prod' => $item['produto_id'],
+                        'lote' => $loteId,
+                        'qtd' => $qtdDevolver
+                    ]);
+
+                    // Abate da requisição
+                    $stmtUpdateReqItem->execute(['qtd' => $qtdDevolver, 'id' => $item['id']]);
+                }
+            }
+
+            if (!$temDevolucao) {
+                throw new \Exception("Nenhuma quantidade foi informada para devolução.");
+            }
+
+            // 3. Recalcula o status da requisição (se devolveu tudo, volta a ser APROVADA, senão continua PARCIAL)
+            $stmtCheck = $db->prepare("SELECT SUM(quantidade_atendida) FROM requisicoes_itens WHERE requisicao_id = :id");
+            $stmtCheck->execute(['id' => $id]);
+            $totalAtendido = (float) $stmtCheck->fetchColumn();
+
+            $novoStatus = $totalAtendido == 0 ? 'APROVADA' : 'ATENDIDA_PARCIAL';
+            $db->prepare("UPDATE requisicoes SET status = :status WHERE id = :id")->execute(['status' => $novoStatus, 'id' => $id]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
+    // Finaliza a requisição, mesmo que atendida totalmente ou parcialmente. 
+    // Isso é útil para casos em que o setor não quer mais receber o restante do material.
+    public function finalizar(int $id): bool
+    {
+        $db = Database::getConnection();
+        try {
+            $db->beginTransaction();
+
+            // 1. Muda o status da requisição para ATENDIDA
+            $db->prepare("UPDATE requisicoes SET status = 'ATENDIDA' WHERE id = :id")->execute(['id' => $id]);
+
+            // 2. Ajusta a quantidade aprovada para ser igual à quantidade atendida.
+            // Isso evita que o sistema continue mostrando "Pendente: 7" na tela.
+            $db->prepare("UPDATE requisicoes_itens SET quantidade_aprovada = quantidade_atendida WHERE requisicao_id = :id")->execute(['id' => $id]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
     }
 }

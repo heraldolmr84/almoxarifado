@@ -1,11 +1,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Painel de Controle</h1>
-
+    <h1 class="poppin">SISGEM - Gestão Eficiente de Materiais</h1>
     <a href="?controller=dashboard&action=exportar" class="btn btn-outline-success">
         📊 Exportar Estoque
     </a>
 </div>
-
 <div class="row mb-4">
     <!-- Card Produtos -->
     <div class="col-sm-6 col-lg-3 mb-3 mb-lg-0">
@@ -114,6 +112,30 @@ $temAlerta = !empty($estoqueBaixo);
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <?php if ($totalPaginasEstoque > 1): ?>
+                        <div class="card-footer bg-white d-flex justify-content-end">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item <?= $pageEstoque <= 1 ? 'disabled' : '' ?>">
+                                        <a class="page-link"
+                                            href="?<?= http_build_query(array_merge($_GET, ['page_estoque' => $pageEstoque - 1])) ?>">Anterior</a>
+                                    </li>
+                                    <?php for ($i = 1; $i <= $totalPaginasEstoque; $i++): ?>
+                                        <li class="page-item <?= $pageEstoque == $i ? 'active' : '' ?>">
+                                            <a class="page-link"
+                                                href="?<?= http_build_query(array_merge($_GET, ['page_estoque' => $i])) ?>">
+                                                <?= $i ?>
+                                            </a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?= $pageEstoque >= $totalPaginasEstoque ? 'disabled' : '' ?>">
+                                        <a class="page-link"
+                                            href="?<?= http_build_query(array_merge($_GET, ['page_estoque' => $pageEstoque + 1])) ?>">Próximo</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -151,6 +173,30 @@ $temAlerta = !empty($estoqueBaixo);
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <?php if ($totalPaginasLotes > 1): ?>
+                        <div class="card-footer bg-white d-flex justify-content-end">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item <?= $pageLotes <= 1 ? 'disabled' : '' ?>">
+                                        <a class="page-link"
+                                            href="?<?= http_build_query(array_merge($_GET, ['page_lotes' => $pageLotes - 1])) ?>">Anterior</a>
+                                    </li>
+                                    <?php for ($i = 1; $i <= $totalPaginasLotes; $i++): ?>
+                                        <li class="page-item <?= $pageLotes == $i ? 'active' : '' ?>">
+                                            <a class="page-link"
+                                                href="?<?= http_build_query(array_merge($_GET, ['page_lotes' => $i])) ?>">
+                                                <?= $i ?>
+                                            </a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?= $pageLotes >= $totalPaginasLotes ? 'disabled' : '' ?>">
+                                        <a class="page-link"
+                                            href="?<?= http_build_query(array_merge($_GET, ['page_lotes' => $pageLotes + 1])) ?>">Próximo</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

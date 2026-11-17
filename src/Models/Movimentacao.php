@@ -80,7 +80,7 @@ class Movimentacao
         }
     }
 
-    public function listarRecentes(array $filtros = [], array $almoxPermitidos = [], int $limit = 10, int $offset = 0): array
+    public function listarRecentes(array $filtros = [], array $almoxPermitidos = [], int $limit = 8, int $offset = 0): array
     {
         $sql = "SELECT m.id, m.data_movimentacao, m.tipo, m.subtipo, m.documento, 
                        u.nome AS usuario, 

@@ -1,23 +1,23 @@
 </main>
 
 <!-- INÍCIO DO RODAPÉ -->
-<footer class="bg-dark text-light py-3 mt-auto border-top border-secondary">
+<footer class="bg-dark text-light py-2 mt-auto border-top border-secondary">
     <div class="container">
         <div class="row align-items-center">
             <!-- Lado Esquerdo: Nome do Sistema -->
             <div class="col-md-4 text-center text-md-start mb-2 mb-md-0">
-                <strong>Sistema de Almoxarifado</strong>
+                <strong>Faculdade de Computação</strong>
             </div>
 
             <!-- Centro: Facom -->
             <div class="col-md-4 text-center mb-2 mb-md-0">
-                <small>Facom - Faculdade de Computação</small>
+                <small>SISGEM - Sistema de Gestão de Materiais</small>
             </div>
 
             <!-- Lado Direito: Versão de Compilação -->
             <div class="col-md-4 text-center text-md-end">
                 <small class="text">
-                    Versão <?= date('Y.m.d') ?> <!-- Gera a versão baseada na data atual -->
+                    Versão 1.0.1 <!-- Gera a versão baseada na data atual -->
                 </small>
             </div>
         </div>

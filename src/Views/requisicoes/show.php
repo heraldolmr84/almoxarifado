@@ -33,6 +33,28 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
                 data-bs-target="#modalRejeitar">Rejeitar</button>
         <?php endif; ?>
 
+        <!-- Botões para Almoxarife -->
+        <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL' && $isAprovador): ?>
+
+            <!-- Finalizar Atendimento (Ignora o restante pendente) -->
+            <a href="?controller=requisicao&action=finalizar&id=<?= $requisicao['id'] ?>" class="btn btn-dark"
+                onclick="return confirm('Tem certeza que deseja finalizar? O restante pendente será ignorado e a requisição sairá da fila de espera.')">
+                ✅ Finalizar Atendimento
+            </a>
+
+            <!-- Devolver Material -->
+            <!--<a href="?controller=requisicao&action=devolver&id=<?= $requisicao['id'] ?>" class="btn btn-warning">
+                ↩️ Devolver Material
+            </a>-->
+
+        <?php endif; ?>
+
+        <?php if (in_array($requisicao['status'], ['ATENDIDA'])): ?>
+            <a href="?controller=requisicao&action=devolver&id=<?= $requisicao['id'] ?>" class="btn btn-warning">
+                ↩️ Devolver Material
+            </a>
+        <?php endif; ?>
+
         <?php if ($requisicao['status'] === 'ATENDIDA_PARCIAL' || $requisicao['status'] === 'ATENDIDA'): ?>
             <a href="?controller=requisicao&action=print&id=<?= $requisicao['id'] ?>" target="_blank"
                 class="btn btn-outline-dark">
@@ -43,7 +65,8 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
         <?php
         // Lógica para exibir o botão de cancelar
         $podeCancelar = false;
-        if ($requisicao['status'] !== 'ATENDIDA' && $requisicao['status'] !== 'CANCELADA') {
+        // Não pode cancelar se já foi ATENDIDA, já está CANCELADA ou já foi REJEITADA
+        if (!in_array($requisicao['status'], ['ATENDIDA', 'CANCELADA', 'REJEITADA'])) {
             if ($isAprovador) {
                 $podeCancelar = true;
             } elseif ($requisicao['solicitante_id'] == $user['id'] && in_array($requisicao['status'], ['RASCUNHO', 'AGUARDANDO_APROVACAO'])) {
@@ -65,8 +88,26 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="row">
-            <div class="col-md-3"><strong>Status:</strong> <br> <span
-                    class="badge bg-primary fs-6"><?= $requisicao['status'] ?></span></div>
+            <div class="col-md-3">
+                <strong>Status:</strong> <br>
+                <?php
+                $cores = [
+                    'RASCUNHO' => 'bg-secondary',
+                    'AGUARDANDO_APROVACAO' => 'bg-warning text-dark',
+                    'APROVADA' => 'bg-info text-dark',
+                    'EM_SEPARACAO' => 'bg-primary',
+                    'AGUARDANDO_ESTOQUE' => 'bg-warning text-dark',
+                    'ATENDIDA_PARCIAL' => 'bg-warning text-dark',
+                    'ATENDIDA' => 'bg-success',
+                    'REJEITADA' => 'bg-danger',
+                    'CANCELADA' => 'bg-dark'
+                ];
+                $cor = $cores[$requisicao['status']] ?? 'bg-secondary';
+                ?>
+                <span class="badge <?= $cor ?> fs-6">
+                    <?= $requisicao['status'] ?>
+                </span>
+            </div>
             <div class="col-md-3"><strong>Solicitante:</strong> <br> <?= htmlspecialchars($requisicao['solicitante']) ?>
             </div>
             <div class="col-md-3"><strong>Departamento:</strong> <br>

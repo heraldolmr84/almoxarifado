@@ -297,4 +297,72 @@ class RequisicaoController
         extract(['requisicao' => $requisicao]);
         require __DIR__ . '/../Views/requisicoes/print.php';
     }
+
+    public function devolverAction(array $query): void
+    {
+        $id = (int) ($query['id'] ?? 0);
+        $requisicao = (new Requisicao())->find($id);
+
+        if (!$requisicao || !in_array($requisicao['status'], ['ATENDIDA', 'ATENDIDA_PARCIAL'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Requisição inválida para devolução.'];
+            header('Location: ?controller=requisicao&action=show&id=' . $id);
+            exit;
+        }
+
+        // Precisamos buscar os lotes de onde saiu o material, para devolver no mesmo lugar
+        $db = \App\Core\Database::getConnection();
+        $lotesPorItem = [];
+
+        // Aqui simplificamos: o usuário poderá escolher o lote novamente na tela se o produto controlar lote.
+        // (Puxaremos todos os lotes disponíveis no almoxarifado para aquele produto).
+        $model = new Requisicao();
+        foreach ($requisicao['itens'] as $item) {
+            if ($item['controla_lote'] && $item['quantidade_atendida'] > 0) {
+                $lotesPorItem[$item['id']] = $model->getLotesDisponiveis($item['produto_id'], $requisicao['almoxarifado_id']);
+            }
+        }
+
+        $mensagem = $_SESSION['mensagem'] ?? null;
+        unset($_SESSION['mensagem']);
+
+        $this->render('requisicoes/devolver', [
+            'requisicao' => $requisicao,
+            'lotesPorItem' => $lotesPorItem,
+            'mensagem' => $mensagem
+        ]);
+    }
+
+    public function storeDevolucaoAction(): void
+    {
+        $id = (int) ($_POST['id'] ?? 0);
+        try {
+            $user = Auth::user();
+            (new Requisicao())->devolver($id, $_POST, $user['id']);
+            $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Devolução registrada com sucesso! Estoque atualizado.'];
+        } catch (\Exception $e) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => $e->getMessage()];
+            header('Location: ?controller=requisicao&action=devolver&id=' . $id);
+            exit;
+        }
+        header('Location: ?controller=requisicao&action=show&id=' . $id);
+        exit;
+    }
+
+    public function finalizarAction(array $query): void
+    {
+        $id = (int) ($query['id'] ?? 0);
+        $user = Auth::user();
+
+        if (!in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Apenas almoxarifes podem finalizar o atendimento.'];
+            header('Location: ?controller=requisicao&action=show&id=' . $id);
+            exit;
+        }
+
+        (new Requisicao())->finalizar($id);
+        $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Atendimento finalizado com sucesso! A requisição não está mais na fila de pendências.'];
+
+        header('Location: ?controller=requisicao&action=show&id=' . $id);
+        exit;
+    }
 }

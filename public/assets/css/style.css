@@ -7,9 +7,16 @@
             #7ADEFF 100%);
 }
 
+.poppin {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-style: normal;
+}
+
 .nav-item .nav-link {
     color: #fff;
     /* Cor do texto dos links */
+    font-weight: bolder;
 }
 
 .logo-img {
@@ -47,4 +54,97 @@
 /* 4. (Opcional) Deixa os cards do dashboard que eram azuis com a nova cor */
 .bg-primary {
     background-color: #0088B7 !important;
+}
+
+/*configurações de impressão de relatórios*/
+/* Estilos específicos para Relatórios */
+.relatorio-header {
+    display: none;
+    /* Escondido na tela, aparece na impressão */
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+.relatorio-tabela {
+    width: 100%;
+    font-size: 13px;
+    /* Fonte menor para caber mais dados */
+    font-family: 'Segoe UI', Arial, sans-serif;
+    border-collapse: collapse;
+}
+
+.relatorio-tabela th {
+    background-color: #f8f9fa !important;
+    /* Cinza bem clarinho */
+    color: #333 !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    border-bottom: 2px solid #dee2e6;
+    padding: 8px;
+}
+
+.relatorio-tabela td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.relatorio-tabela tr:nth-child(even) {
+    background-color: #fafafa;
+    /* Zebrado quase invisível */
+}
+
+/* Regras exclusivas para quando o usuário mandar imprimir */
+@media print {
+
+    .no-print,
+    .navbar,
+    .btn,
+    form,
+    .card-header,
+    .pagination {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .container,
+    .container-fluid {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Mostra o cabeçalho bonito na folha */
+    .relatorio-header {
+        display: block !important;
+    }
+
+    /* Repete o cabeçalho da tabela em todas as páginas do PDF */
+    thead {
+        display: table-header-group;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Força o layout paisagem (horizontal) se a tabela for muito larga */
+    @page {
+        size: landscape;
+        margin: 1cm;
+    }
 }

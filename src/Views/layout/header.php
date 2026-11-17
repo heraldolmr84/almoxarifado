@@ -14,13 +14,40 @@ $user = Auth::user();
 
     <link rel="icon" type="image/x-icon" href="assets/img/favicom.png">
 
-    <title>Sistema de Almoxarifado - FACOM</title>
+    <title>SISGEM - Sistema de Gestão de Materiais</title>
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        @media print {
+
+            .navbar,
+            .btn,
+            form,
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+            }
+
+            .card {
+                border: none;
+                box-shadow: none;
+            }
+        }
+    </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -39,11 +66,11 @@ $user = Auth::user();
                     <ul class="navbar-nav me-auto">
                         <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="?controller=dashboard&action=index">Início</a>
+                                <a class="nav-link" style="font-weight: bolder;"
+                                    href="?controller=dashboard&action=index">Início</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="?controller=produto&action=list">Produtos</a>
-                            </li>
+                                <a class="nav-link" href="?controller=estoque&action=list">Estoque</a>
                             <li class="nav-item">
                                 <a class="nav-link" href="?controller=movimentacao&action=list">Movimentações</a>
                             </li>
@@ -71,11 +98,20 @@ $user = Auth::user();
                                     Administração
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="?controller=categoria&action=list">Categorias</a></li>
-                                    <li><a class="dropdown-item" href="?controller=unidade&action=list">Unidades de Medida</a>
+                                    <li class="nav-item">
+                                        <a class="dropdown-item" href="?controller=produto&action=list">Materiais</a>
                                     </li>
-                                    <li><a class="dropdown-item" href="?controller=fornecedor&action=list">Fornecedores</a></li>
-                                    <li><a class="dropdown-item" href="?controller=almoxarifado&action=list">Almoxarifados</a>
+                                    <li>
+                                        <a class="dropdown-item" href="?controller=categoria&action=list">Categorias</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="?controller=unidade&action=list">Unidades de Medida</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="?controller=fornecedor&action=list">Fornecedores</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="?controller=almoxarifado&action=list">Almoxarifados</a>
                                     </li>
 
                                     <?php if ($user['perfil'] === 'ADMIN'): ?>
@@ -86,6 +122,24 @@ $user = Auth::user();
                                         <li><a class="dropdown-item" href="?controller=departamento&action=list">Departamentos</a>
                                         </li>
                                     <?php endif; ?>
+                                </ul>
+                            </li>
+                        <?php endif; ?>
+
+                        <!-- RELATÓRIOS: Visível para Admin, Almoxarife e Gerente -->
+                        <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                    Relatórios
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="?controller=relatorio&action=movimentacoes">Extrato de
+                                            Movimentações</a></li>
+                                    <li><a class="dropdown-item" href="?controller=relatorio&action=consumo">Consumo por
+                                            Setor</a></li>
+                                    <li><a class="dropdown-item" href="?controller=relatorio&action=semMovimentacao">Estoque
+                                            Parado</a></li>
                                 </ul>
                             </li>
                         <?php endif; ?>

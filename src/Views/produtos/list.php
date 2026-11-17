@@ -6,8 +6,8 @@
 <?php endif; ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Produtos</h1>
-    <a href="?controller=produto&action=create" class="btn btn-primary">Novo Produto</a>
+    <h1>Materiais</h1>
+    <a href="?controller=produto&action=create" class="btn btn-primary">Cadastrar Material</a>
 </div>
 
 <!-- Formulário de Busca -->

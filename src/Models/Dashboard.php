@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Core\Database;
+use PDO;
 
 class Dashboard
 {
@@ -30,7 +31,7 @@ class Dashboard
         return (int) Database::getConnection()->query($sql)->fetchColumn();
     }
 
-    public function getProdutosEstoqueBaixo(array $almoxPermitidos = []): array
+    public function getProdutosEstoqueBaixo(array $almoxPermitidos = [], int $limit = 5, int $offset = 0): array
     {
         $sql = "SELECT p.codigo, p.descricao, 
                        COALESCE(SUM(s.quantidade), 0) AS quantidade_atual, 
@@ -46,9 +47,13 @@ class Dashboard
         $sql .= " WHERE p.ativo = TRUE
                   GROUP BY p.id, p.codigo, p.descricao, p.estoque_minimo
                  HAVING COALESCE(SUM(s.quantidade), 0) <= p.estoque_minimo
-                  ORDER BY quantidade_atual ASC";
+                  ORDER BY quantidade_atual ASC LIMIT :limit OFFSET :offset";
 
-        return Database::getConnection()->query($sql)->fetchAll();
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     public function getTotalBackorders(array $almoxPermitidos = []): int
@@ -65,7 +70,7 @@ class Dashboard
     }
 
     // Função que retorna loter a vencer
-    public function getLotesAVencer(): array
+    public function getLotesAVencer(int $limit = 5, int $offset = 0): array
     {
         $sql = "SELECT p.descricao, l.numero_lote, l.validade, s.quantidade, a.nome AS almoxarifado
                   FROM lotes l
@@ -75,7 +80,42 @@ class Dashboard
                  WHERE s.quantidade > 0 
                    AND l.validade IS NOT NULL
                    AND l.validade <= CURRENT_DATE + INTERVAL '30 days'
-                 ORDER BY l.validade ASC";
-        return Database::getConnection()->query($sql)->fetchAll();
+                 ORDER BY l.validade ASC LIMIT :limit OFFSET :offset";
+
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function countProdutosEstoqueBaixo(array $almoxPermitidos = []): int
+    {
+        // Para contar, precisamos envolver a query com HAVING em uma subquery
+        $sql = "SELECT COUNT(*) FROM (
+                    SELECT p.id FROM produtos p
+                    LEFT JOIN saldo_estoque s ON s.produto_id = p.id";
+
+        if (!empty($almoxPermitidos)) {
+            $inQuery = implode(',', array_map('intval', $almoxPermitidos));
+            $sql .= " AND s.almoxarifado_id IN ($inQuery)";
+        }
+
+        $sql .= " WHERE p.ativo = TRUE
+                    GROUP BY p.id 
+                   HAVING COALESCE(SUM(s.quantidade), 0) <= p.estoque_minimo
+                ) AS sub";
+
+        return (int) Database::getConnection()->query($sql)->fetchColumn();
+    }
+
+    public function countLotesAVencer(): int
+    {
+        $sql = "SELECT COUNT(*) FROM lotes l
+                  JOIN saldo_estoque s ON s.lote_id = l.id
+                 WHERE s.quantidade > 0 
+                   AND l.validade IS NOT NULL
+                   AND l.validade <= CURRENT_DATE + INTERVAL '30 days'";
+        return (int) Database::getConnection()->query($sql)->fetchColumn();
     }
 }

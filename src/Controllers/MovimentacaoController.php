@@ -30,7 +30,7 @@ class MovimentacaoController
         ];
 
         // Lógica de Paginação
-        $limit = 10;
+        $limit = 8;
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
         if ($page < 1)
             $page = 1;

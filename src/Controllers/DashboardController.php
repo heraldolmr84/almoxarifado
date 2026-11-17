@@ -21,14 +21,41 @@ class DashboardController
     {
         $model = new Dashboard();
         $permissoes = Auth::getAlmoxarifadosPermitidos();
+        $limit = 5; // 5 itens por página
+
+        // Paginação do Estoque Baixo
+        $pageEstoque = isset($_GET['page_estoque']) && is_numeric($_GET['page_estoque']) ? (int) $_GET['page_estoque'] : 1;
+        if ($pageEstoque < 1)
+            $pageEstoque = 1;
+        $offsetEstoque = ($pageEstoque - 1) * $limit;
+
+        $estoqueBaixo = $model->getProdutosEstoqueBaixo($permissoes, $limit, $offsetEstoque);
+        $totalEstoque = $model->countProdutosEstoqueBaixo($permissoes);
+        $totalPaginasEstoque = ceil($totalEstoque / $limit);
+
+        // Paginação dos Lotes a Vencer
+        $pageLotes = isset($_GET['page_lotes']) && is_numeric($_GET['page_lotes']) ? (int) $_GET['page_lotes'] : 1;
+        if ($pageLotes < 1)
+            $pageLotes = 1;
+        $offsetLotes = ($pageLotes - 1) * $limit;
+
+        $lotesVencendo = $model->getLotesAVencer($limit, $offsetLotes);
+        $totalLotes = $model->countLotesAVencer();
+        $totalPaginasLotes = ceil($totalLotes / $limit);
 
         $this->render('dashboard/index', [
-            'totalProdutos'     => $model->getTotalProdutos(),
-            'reqPendentes'      => $model->getRequisicoesPendentes($permissoes),
-            'reqAprovadas'      => $model->getRequisicoesAprovadas($permissoes),
-            'totalBackorders'   => $model->getTotalBackorders($permissoes),
-            'estoqueBaixo'      => $model->getProdutosEstoqueBaixo($permissoes),
-            'lotesVencendo'     => $model->getLotesAVencer()
+            'totalProdutos' => $model->getTotalProdutos(),
+            'reqPendentes' => $model->getRequisicoesPendentes($permissoes),
+            'reqAprovadas' => $model->getRequisicoesAprovadas($permissoes),
+            'totalBackorders' => $model->getTotalBackorders($permissoes),
+            'estoqueBaixo' => $estoqueBaixo,
+            'lotesVencendo' => $lotesVencendo,
+
+            // Passando dados da paginação para a View
+            'pageEstoque' => $pageEstoque,
+            'totalPaginasEstoque' => $totalPaginasEstoque,
+            'pageLotes' => $pageLotes,
+            'totalPaginasLotes' => $totalPaginasLotes
         ]);
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Requisição <?= $requisicao['numero'] ?></title>
-    <link href="/assets/boostrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #fff; font-size: 14px; }
         .header-print { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }

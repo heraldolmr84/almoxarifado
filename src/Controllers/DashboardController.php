@@ -113,4 +113,24 @@ class DashboardController
         fclose($output);
         exit;
     }
+
+    public function apiStatusAction(): void
+    {
+        // Limpa qualquer buffer para não sujar o JSON
+        ob_clean();
+
+        $model = new \App\Models\Dashboard();
+        $permissoes = \App\Core\Auth::getAlmoxarifadosPermitidos();
+
+        // Pega os dados atualizados
+        $dados = [
+            'reqPendentes' => $model->getRequisicoesPendentes($permissoes),
+            'reqAprovadas' => $model->getRequisicoesAprovadas($permissoes),
+            'totalBackorders' => $model->getTotalBackorders($permissoes)
+        ];
+
+        header('Content-Type: application/json');
+        echo json_encode($dados);
+        exit;
+    }
 }

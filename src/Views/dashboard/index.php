@@ -1,5 +1,5 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="poppin">SISGEM - Gestão Eficiente de Materiais</h1>
+    <h1 class="poppin">Gestão Eficiente de Materiais</h1>
     <a href="?controller=dashboard&action=exportar" class="btn btn-outline-success">
         📊 Exportar Estoque
     </a>
@@ -23,7 +23,7 @@
         <div class="card text-dark bg-warning shadow-sm h-100">
             <div class="card-body">
                 <h6 class="card-title text-uppercase">Aguardando Aprovação</h6>
-                <h2 class="display-5 fw-bold mb-2">
+                <h2 class="display-5 fw-bold mb-2" id="num-pendentes">
                     <?= $reqPendentes ?>
                 </h2>
                 <small class="card-text">Requisições esperando o seu aval.</small>
@@ -36,7 +36,7 @@
         <div class="card text-white bg-success shadow-sm h-100">
             <div class="card-body">
                 <h6 class="card-title text-uppercase">Prontas para Entrega</h6>
-                <h2 class="display-5 fw-bold mb-2">
+                <h2 class="display-5 fw-bold mb-2" id="num-aprovadas">
                     <?= $reqAprovadas ?>
                 </h2>
                 <small class="card-text">Requisições aprovadas aguardando retirada.</small>
@@ -51,7 +51,7 @@
             <div class="card text-white <?= $totalBackorders > 0 ? 'bg-danger' : 'bg-secondary' ?> shadow-sm h-100">
                 <div class="card-body">
                     <h6 class="card-title text-uppercase">Itens em Backorder</h6>
-                    <h2 class="display-5 fw-bold mb-2">
+                    <h2 class="display-5 fw-bold mb-2" id="num-backorders">
                         <?= $totalBackorders ?>
                     </h2>
                     <small class="card-text">Itens pendentes de entrega.</small>
@@ -202,3 +202,75 @@ $temAlerta = !empty($estoqueBaixo);
         </div>
     </div>
 <?php endif; ?>
+
+<!-- Container para a notificação flutuante (Toast) -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+    <div id="toastNotificacao" class="toast align-items-center text-bg-primary border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-bell-fill me-2"></i> <strong>Nova Requisição!</strong> Uma nova solicitação aguarda
+                aprovação.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variável para guardar o número atual de requisições (para saber se aumentou)
+    let qtdPendentesAtual = parseInt(document.getElementById('num-pendentes').innerText);
+
+    function checarNovasRequisicoes() {
+        // Faz a chamada para a nossa API em PHP
+        fetch('?controller=dashboard&action=apiStatus')
+            .then(response => response.json())
+            .then(dados => {
+                // Atualiza os números na tela
+                document.getElementById('num-aprovadas').innerText = dados.reqAprovadas;
+
+                const cardBackorder = document.getElementById('num-backorders').parentElement;
+                document.getElementById('num-backorders').innerText = dados.totalBackorders;
+
+                // Muda a cor do card de backorder se passar de 0
+                if (dados.totalBackorders > 0) {
+                    cardBackorder.classList.remove('bg-secondary');
+                    cardBackorder.classList.add('bg-danger');
+                } else {
+                    cardBackorder.classList.remove('bg-danger');
+                    cardBackorder.classList.add('bg-secondary');
+                }
+
+                // Verifica se o número de pendentes AUMENTOU
+                if (dados.reqPendentes > qtdPendentesAtual) {
+                    // Atualiza o número na tela
+                    document.getElementById('num-pendentes').innerText = dados.reqPendentes;
+
+                    // Mostra a notificação (Toast)
+                    const toastEl = document.getElementById('toastNotificacao');
+                    const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+                    toast.show();
+
+                    // Toca um som de notificação (opcional)
+                    tocarSom();
+                } else {
+                    // Se diminuiu (alguém atendeu), apenas atualiza o número
+                    document.getElementById('num-pendentes').innerText = dados.reqPendentes;
+                }
+
+                // Atualiza a variável de controle
+                qtdPendentesAtual = dados.reqPendentes;
+            })
+            .catch(error => console.log('Erro ao checar status:', error));
+    }
+
+    // Função opcional para tocar um som de "Plim"
+    function tocarSom() {
+        const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+        audio.play().catch(e => console.log('Áudio bloqueado pelo navegador.'));
+    }
+
+    // Executa a checagem a cada 10 segundos (10000 milissegundos)
+    setInterval(checarNovasRequisicoes, 10000);
+</script>

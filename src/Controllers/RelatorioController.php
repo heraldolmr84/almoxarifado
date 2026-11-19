@@ -37,7 +37,7 @@ class RelatorioController
                   LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
                   LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
                  WHERE m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim";
-        
+
         $params = [
             'inicio' => $filtros['data_inicio'] . ' 00:00:00',
             'fim' => $filtros['data_fim'] . ' 23:59:59'
@@ -49,10 +49,10 @@ class RelatorioController
         }
 
         $sql .= " ORDER BY m.id DESC";
-        
+
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
-        
+
         $this->render('relatorios/movimentacoes', [
             'dados' => $stmt->fetchAll(),
             'filtros' => $filtros
@@ -78,13 +78,13 @@ class RelatorioController
                    AND r.criado_em >= :inicio AND r.criado_em <= :fim
                  GROUP BY d.id, d.nome
                  ORDER BY total_itens DESC";
-        
+
         $stmt = Database::getConnection()->prepare($sql);
         $stmt->execute([
             'inicio' => $filtros['data_inicio'] . ' 00:00:00',
             'fim' => $filtros['data_fim'] . ' 23:59:59'
         ]);
-        
+
         $this->render('relatorios/consumo', [
             'dados' => $stmt->fetchAll(),
             'filtros' => $filtros
@@ -111,13 +111,102 @@ class RelatorioController
                  GROUP BY p.id, p.codigo, p.descricao
                 HAVING COALESCE(SUM(s.quantidade), 0) > 0
                  ORDER BY p.descricao";
-                 
+
         $stmt = Database::getConnection()->prepare($sql);
         $stmt->execute(['data_limite' => $filtros['data_limite'] . ' 00:00:00']);
-        
+
         $this->render('relatorios/sem_movimentacao', [
             'dados' => $stmt->fetchAll(),
             'filtros' => $filtros
+        ]);
+    }
+
+    // Relatório: Compras por Período
+    // Relatório: Compras por Período (Agora lendo de Movimentações)
+    public function comprasAction(): void
+    {
+        $filtros = [
+            'data_inicio' => $_GET['data_inicio'] ?? date('Y-m-01'),
+            'data_fim' => $_GET['data_fim'] ?? date('Y-m-t')
+        ];
+
+        $db = Database::getConnection();
+
+        // Lê as MOVIMENTAÇÕES de ENTRADA (seja de pedido de compra ou entrada direta)
+        $sql = "SELECT m.id, COALESCE(m.documento, 'S/N') AS documento, 
+                       m.data_movimentacao AS data_compra, m.subtipo, 
+                       f.razao_social AS fornecedor,
+                       u.nome AS usuario,
+                       COALESCE(SUM(i.quantidade * i.valor_unitario), 0) AS total_pedido
+                  FROM movimentacoes m
+                  JOIN itens_movimentacao i ON i.movimentacao_id = m.id
+                  JOIN usuarios u ON u.id = m.usuario_id
+                  LEFT JOIN fornecedores f ON f.id = m.fornecedor_id
+                 WHERE m.tipo = 'ENTRADA' AND m.status = 'CONFIRMADA'
+                   AND m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim
+                   AND i.valor_unitario IS NOT NULL AND i.valor_unitario > 0
+                 GROUP BY m.id, f.razao_social, u.nome
+                 ORDER BY m.data_movimentacao DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([
+            'inicio' => $filtros['data_inicio'] . ' 00:00:00',
+            'fim' => $filtros['data_fim'] . ' 23:59:59'
+        ]);
+
+        $this->render('relatorios/compras', [
+            'dados' => $stmt->fetchAll(),
+            'filtros' => $filtros
+        ]);
+    }
+
+    // Relatório: Materiais Comprados por Período
+    // Relatório: Materiais Comprados por Período (Agora lendo de Movimentações)
+    public function materiaisCompradosAction(): void
+    {
+        $filtros = [
+            'data_inicio' => $_GET['data_inicio'] ?? date('Y-m-01'),
+            'data_fim' => $_GET['data_fim'] ?? date('Y-m-t'),
+            'produto_id' => $_GET['produto_id'] ?? ''
+        ];
+
+        $db = Database::getConnection();
+
+        $sql = "SELECT COALESCE(m.documento, 'S/N') AS pedido_numero, 
+                       m.data_movimentacao AS data_compra, 
+                       m.subtipo, f.razao_social AS fornecedor,
+                       pr.codigo AS produto_codigo, pr.descricao AS produto_descricao, u.sigla AS unidade,
+                       i.quantidade, i.valor_unitario, (i.quantidade * i.valor_unitario) AS subtotal
+                  FROM movimentacoes m
+                  JOIN itens_movimentacao i ON i.movimentacao_id = m.id
+                  JOIN produtos pr ON pr.id = i.produto_id
+                  JOIN unidades_medida u ON u.id = pr.unidade_medida_id
+                  LEFT JOIN fornecedores f ON f.id = m.fornecedor_id
+                 WHERE m.tipo = 'ENTRADA' AND m.status = 'CONFIRMADA'
+                   AND m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim
+                   AND i.valor_unitario IS NOT NULL AND i.valor_unitario > 0";
+
+        $params = [
+            'inicio' => $filtros['data_inicio'] . ' 00:00:00',
+            'fim' => $filtros['data_fim'] . ' 23:59:59'
+        ];
+
+        if (!empty($filtros['produto_id'])) {
+            $sql .= " AND i.produto_id = :produto_id";
+            $params['produto_id'] = $filtros['produto_id'];
+        }
+
+        $sql .= " ORDER BY m.data_movimentacao DESC, pr.descricao";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+
+        $produtos = $db->query("SELECT id, codigo, descricao FROM produtos WHERE ativo = TRUE ORDER BY descricao")->fetchAll();
+
+        $this->render('relatorios/materiais_comprados', [
+            'dados' => $stmt->fetchAll(),
+            'filtros' => $filtros,
+            'produtos' => $produtos
         ]);
     }
 

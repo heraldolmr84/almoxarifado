@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../logs/php_errors.log'); 
+ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 
 // Carrega o autoload do Composer
 require __DIR__ . '/../vendor/autoload.php';
@@ -23,39 +23,53 @@ use App\Core\Auth;
 $controller = $_GET['controller'] ?? 'dashboard';
 $action = $_GET['action'] ?? 'index';
 
-// Se NÃO estiver logado E NÃO for a tela de auth, joga pro login
-if (!Auth::check() && $controller !== 'auth') {
+// Trava de segurança de Login
+if (!Auth::check() && ($_GET['controller'] ?? 'auth') !== 'auth') {
     header('Location: ?controller=auth&action=login');
     exit;
 }
 
+// Trava de troca de senha
 if (Auth::check()) {
     $user = Auth::user();
-
-    $defaultController = ($user['perfil'] === 'OPERADOR') ? 'requisicao' : 'dashboard';
-
-    // Se precisa trocar senha, só deixa acessar a tela de troca ou logout
-    if ($user['deve_trocar_senha'] && $controller !== 'auth') {
+    if (($user['deve_trocar_senha'] ?? false) && ($_GET['controller'] ?? '') !== 'auth') {
         header('Location: ?controller=auth&action=trocarSenha');
         exit;
     }
-} else {
-    $defaultController = 'auth';
 }
 
-$controller = $_GET['controller'] ?? $defaultController;
-$action = $_GET['action'] ?? (($controller === 'auth') ? 'login' : 'list');
+// ==========================================================
+// LÓGICA DE ROTA PADRÃO (Se o usuário digitar apenas a URL base)
+// ==========================================================
+$defaultController = 'dashboard';
+$defaultAction = 'index';
 
-// Se for Dashboard, a action padrão é index, não list
+// Se estiver logado, define a página inicial baseada no perfil
+if (Auth::check()) {
+    $user = Auth::user();
+    // Operador não tem acesso ao Dashboard, então cai direto nas requisições
+    if ($user['perfil'] === 'OPERADOR') {
+        $defaultController = 'requisicao';
+        $defaultAction = 'list';
+    }
+} else {
+    // Se não estiver logado, a tela padrão é o login
+    $defaultController = 'auth';
+    $defaultAction = 'login';
+}
+
+// Pega o que veio na URL, ou usa o padrão definido acima
+$controller = $_GET['controller'] ?? $defaultController;
+$action = $_GET['action'] ?? $defaultAction;
+
+// Caso especial: Se a URL for ?controller=dashboard mas não tiver action, força 'index'
 if ($controller === 'dashboard' && !isset($_GET['action'])) {
     $action = 'index';
 }
 
-// Se NÃO estiver logado E NÃO estiver tentando acessar a tela de login, bloqueia!
-if (!Auth::check() && $controller !== 'auth') {
-    header('Location: ?controller=auth&action=login');
-    exit;
-}
+$_GET['controller'] = $controller;
+$_GET['action'] = $action;
+// ==========================================================
 
 $router = new Router();
 $router->dispatch($_GET);

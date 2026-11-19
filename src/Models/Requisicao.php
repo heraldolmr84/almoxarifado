@@ -99,19 +99,21 @@ class Requisicao
         $params = [];
 
         if ($perfil === 'OPERADOR') {
+            // Operador vê apenas as suas (inclusive rascunhos)
             $sql .= " AND r.solicitante_id = :usuario";
             $params['usuario'] = $usuarioId;
+        } elseif ($perfil === 'ADMIN') {
+            // Admin vê tudo, não aplica restrição extra aqui
         } else {
-            // Almoxarife e Gerente veem tudo do seu almoxarifado, MENOS rascunhos
+            // Almoxarife e Gerente
             if (!empty($almoxPermitidos)) {
                 $inQuery = implode(',', array_map('intval', $almoxPermitidos));
                 $sql .= " AND r.almoxarifado_id IN ($inQuery)";
             }
 
-            // REGRA NOVA: Almoxarife e Gerente não veem Rascunhos
-            if (in_array($perfil, ['ALMOXARIFE', 'GERENTE'])) {
-                $sql .= " AND r.status != 'RASCUNHO'";
-            }
+            // REGRA CORRIGIDA: Não veem rascunhos, A MENOS que o rascunho seja deles
+            $sql .= " AND (r.status != 'RASCUNHO' OR r.solicitante_id = :usuario_logado)";
+            $params['usuario_logado'] = $usuarioId;
         }
 
         if (!empty($almoxPermitidos)) {
@@ -153,16 +155,16 @@ class Requisicao
         if ($perfil === 'OPERADOR') {
             $sql .= " AND r.solicitante_id = :usuario";
             $params['usuario'] = $usuarioId;
+        } elseif ($perfil === 'ADMIN') {
+            // Admin vê tudo
         } else {
             if (!empty($almoxPermitidos)) {
                 $inQuery = implode(',', array_map('intval', $almoxPermitidos));
                 $sql .= " AND r.almoxarifado_id IN ($inQuery)";
             }
 
-            // REGRA NOVA: Almoxarife e Gerente não veem Rascunhos
-            if (in_array($perfil, ['ALMOXARIFE', 'GERENTE'])) {
-                $sql .= " AND r.status != 'RASCUNHO'";
-            }
+            $sql .= " AND (r.status != 'RASCUNHO' OR r.solicitante_id = :usuario_logado)";
+            $params['usuario_logado'] = $usuarioId;
         }
 
         if (!empty($almoxPermitidos)) {

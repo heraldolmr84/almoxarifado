@@ -97,6 +97,142 @@
     /* Zebrado quase invisível */
 }
 
+/* =========================================
+   LAYOUT: SIDEBAR (MENU LATERAL)
+   ========================================= */
+body {
+    background-color: #f4f6f9;
+    overflow-x: hidden;
+}
+
+.sidebar {
+    width: 260px;
+    background-color: #0088B7;
+    /* Cor escura do print */
+    color: #ecf0f1;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    overflow-y: auto;
+    transition: all 0.3s;
+}
+
+.sidebar-brand {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.sidebar-brand img {
+    height: 35px;
+    margin-right: 10px;
+}
+
+.sidebar-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #95a5a6;
+    padding: 20px 20px 10px 20px;
+    letter-spacing: 1px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: 0.2s;
+}
+
+.sidebar-link i {
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    background-color: #ffffff;
+    color: #0088B7;
+    border-left: 4px solid #0088B7;
+    /* Azul do sistema */
+}
+
+/* Área de Conteúdo Principal */
+.main-content {
+    margin-left: 260px;
+    /* Mesma largura da sidebar */
+    padding: 20px 30px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Topbar para informações do usuário */
+.topbar {
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Ajustes no título para parecer um botão clicável */
+.sidebar-heading {
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    transition: color 0.2s;
+}
+
+.sidebar-heading:hover {
+    color: #ffffff !important;
+    /* Fica branco ao passar o mouse */
+}
+
+/* Animação da setinha (Chevron) */
+.sidebar-heading .bi-chevron-down {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+/* Quando o menu está aberto, a setinha aponta para cima */
+.sidebar-heading[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* Quando o menu está fechado, a setinha aponta para baixo */
+.sidebar-heading[aria-expanded="false"] .bi-chevron-down {
+    transform: rotate(0deg);
+}
+
+/* Responsividade para Celular */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: -260px;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .sidebar.active {
+        margin-left: 0;
+    }
+}
+
 /* Regras exclusivas para quando o usuário mandar imprimir */
 @media print {
 
@@ -147,4 +283,10 @@
         size: landscape;
         margin: 1cm;
     }
+}
+
+/* Corrige o visual do Select2 quando o dropdown abre */
+.select2-container--bootstrap-5 .select2-dropdown {
+    z-index: 1055; /* Garante que o dropdown fique por cima de tudo */
+    background-color: #fff;
 }

@@ -73,19 +73,48 @@ $podeComprarReceber = ($isAdmin || $isAlmoxarife);
                 <th>Produto</th>
                 <th>Qtd Solicitada</th>
                 <th>Valor Unitário</th>
+                <th>Subtotal</th> <!-- NOVA COLUNA -->
                 <th>Recebido</th>
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($pedido['itens'] as $item): ?>
+            <?php
+            $totalGeral = 0; // Variável para acumular o total
+            foreach ($pedido['itens'] as $item):
+                // Calcula o subtotal deste item (se não tiver valor, considera 0)
+                $valorUnitario = $item['valor_unitario'] ?? 0;
+                $subtotal = $valorUnitario * $item['quantidade'];
+                $totalGeral += $subtotal; // Vai somando no total geral
+                ?>
                 <tr>
-                    <td><?= htmlspecialchars($item['codigo'] . ' - ' . $item['descricao']) ?></td>
-                    <td><?= number_format($item['quantidade'], 2, ',', '.') ?>     <?= $item['unidade'] ?></td>
-                    <td><?= $item['valor_unitario'] ? 'R$ ' . number_format($item['valor_unitario'], 2, ',', '.') : '—' ?>
+                    <td>
+                        <?= htmlspecialchars($item['codigo'] . ' - ' . $item['descricao']) ?>
                     </td>
-                    <td><?= number_format($item['quantidade_recebida'], 2, ',', '.') ?></td>
+                    <td>
+                        <?= number_format($item['quantidade'], 2, ',', '.') ?>
+                        <?= $item['unidade'] ?>
+                    </td>
+                    <td>
+                        <?= $item['valor_unitario'] ? 'R$ ' . number_format($item['valor_unitario'], 2, ',', '.') : '—' ?>
+                    </td>
+                    <td>
+                        <?= $item['valor_unitario'] ? 'R$ ' . number_format($subtotal, 2, ',', '.') : '—' ?>
+                    </td>
+                    <td>
+                        <?= number_format($item['quantidade_recebida'], 2, ',', '.') ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
+        <!-- RODAPÉ COM O TOTAL GERAL -->
+        <tfoot class="table-light">
+            <tr>
+                <th colspan="3" class="text-end fs-5">TOTAL GERAL DO PEDIDO:</th>
+                <th class="fs-5 text-success">R$
+                    <?= number_format($totalGeral, 2, ',', '.') ?>
+                </th>
+                <th></th>
+            </tr>
+        </tfoot>
     </table>
 </div>

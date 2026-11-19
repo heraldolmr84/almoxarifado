@@ -1,28 +1,16 @@
 </main>
 
 <!-- INÍCIO DO RODAPÉ -->
-<footer class="bg-dark text-light py-2 mt-auto border-top border-secondary">
-    <div class="container">
-        <div class="row align-items-center">
-            <!-- Lado Esquerdo: Nome do Sistema -->
-            <div class="col-md-4 text-center text-md-start mb-2 mb-md-0">
-                <strong>Faculdade de Computação</strong>
-            </div>
-
-            <!-- Centro: Facom -->
-            <div class="col-md-4 text-center mb-2 mb-md-0">
-                <small>SISGEM - Sistema de Gestão de Materiais</small>
-            </div>
-
-            <!-- Lado Direito: Versão de Compilação -->
-            <div class="col-md-4 text-center text-md-end">
-                <small class="text">
-                    Versão 1.0.1 <!-- Gera a versão baseada na data atual -->
-                </small>
-            </div>
-        </div>
+<?php if (isset($user) && $user): ?>
+    <!-- Fecha a div principal (que foi aberta no header) -->
+    <footer class="mt-auto pt-4 pb-2 text-center text-muted small border-top">
+        SISGEM - Sistema de Gestão de Materiais | Facom - Faculdade de Computação
+    </footer>
+    </div> <!-- Fecha .main-content -->
+<?php else: ?>
+    <!-- Fecha o container da tela de login -->
     </div>
-</footer>
+<?php endif; ?>
 
 <script src="assets/js/bootstrap.bundle.min.js"></script>
 
@@ -37,7 +25,7 @@
 
 <!-- Inicializador automático do Select2 -->
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
         // Aplica o Select2 em qualquer select que tenha a classe "select2"
         $('.select2').select2({
             theme: 'bootstrap-5',
@@ -49,7 +37,7 @@
         // 2. LÓGICA DO SKU
         if ($('#selectCategoria').length > 0) {
             // Escuta os dois tipos de eventos para garantir
-            $('#selectCategoria').on('change select2:select', function(e) {
+            $('#selectCategoria').on('change select2:select', function (e) {
                 const categoriaId = $(this).val();
                 const campoSku = $('#campoSku');
 

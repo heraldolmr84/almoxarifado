@@ -45,14 +45,20 @@ $currentController = $_GET['controller'] ?? 'dashboard';
             <div class="mt-3">
                 <!-- GERENCIAMENTO -->
                 <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
-                    <div class="sidebar-heading">Gerenciamento</div>
-                    <a href="?controller=produto&action=list"
-                        class="sidebar-link <?= $currentController == 'produto' ? 'active' : '' ?>">
-                        <i class="bi bi-box-seam"></i> Produtos
-                    </a>
-                    <a href="?controller=estoque&action=list"
-                        class="sidebar-link <?= $currentController == 'estoque' ? 'active' : '' ?>">
-                        <i class="bi bi-clipboard-data"></i> Estoque
+                    <div class="sidebar-heading">Visão Geral</div>
+
+                    <!-- Se for GERENTE ou ADMIN, mostra o link do Gerencial -->
+                    <?php if (in_array($user['perfil'], ['ADMIN', 'GERENTE'])): ?>
+                        <a href="?controller=dashboard&action=gerencial"
+                            class="sidebar-link <?= ($currentController == 'dashboard' && ($_GET['action'] ?? '') == 'gerencial') ? 'active' : '' ?>">
+                            <i class="bi bi-graph-up-arrow"></i> Painel Gerencial
+                        </a>
+                    <?php endif; ?>
+
+                    <!-- Dashboard Operacional (Almoxarife, Admin e Gerente) -->
+                    <a href="?controller=dashboard&action=index"
+                        class="sidebar-link <?= ($currentController == 'dashboard' && ($_GET['action'] ?? 'index') == 'index') ? 'active' : '' ?>">
+                        <i class="bi bi-speedometer2"></i> Painel Operacional
                     </a>
                 <?php endif; ?>
 

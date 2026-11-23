@@ -8,19 +8,20 @@ class AuthController
 {
     public function loginAction(): void
     {
-        // Se o usuário JÁ estiver logado (ex: tentou acessar a tela de login de novo)
         if (\App\Core\Auth::check()) {
-            $usuarioLogado = \App\Core\Auth::user(); // Pega os dados de quem já está na sessão
+            $usuarioLogado = \App\Core\Auth::user();
 
             if ($usuarioLogado['perfil'] === 'OPERADOR') {
                 header('Location: ?controller=requisicao&action=list');
+            } elseif ($usuarioLogado['perfil'] === 'GERENTE') {
+                // Redireciona o Gerente para o painel estratégico
+                header('Location: ?controller=dashboard&action=gerencial');
             } else {
                 header('Location: ?controller=dashboard&action=index');
             }
             exit;
         }
 
-        // Se NÃO estiver logado, mostra a tela de login
         require __DIR__ . '/../Views/auth/login.php';
     }
 
@@ -35,26 +36,20 @@ class AuthController
             exit;
         }
 
-        $usuario = (new Usuario())->findByEmail($email);
+        $usuario = (new \App\Models\Usuario())->findByEmail($email);
 
         if ($usuario && password_verify($senha, $usuario['senha_hash'])) {
-
-            Auth::login($usuario);
-
-            if ($usuario['deve_trocar_senha']) {
-                $_SESSION['msg_alerta'] = 'Por segurança, você precisa cadastrar uma nova senha.';
-                header('Location: ?controller=auth&action=trocarSenha');
-                exit;
-            }
+            \App\Core\Auth::login($usuario);
 
             // Redirecionamento baseado no perfil
             if ($usuario['perfil'] === 'OPERADOR') {
                 header('Location: ?controller=requisicao&action=list');
+            } elseif ($usuario['perfil'] === 'GERENTE') {
+                // Redireciona o Gerente para o painel estratégico
+                header('Location: ?controller=dashboard&action=gerencial');
             } else {
                 header('Location: ?controller=dashboard&action=index');
             }
-            // Substitua as verificações de perfil por esta linha única:
-            //header('Location: ?controller=dashboard&action=index');
             exit;
         }
 

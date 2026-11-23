@@ -133,4 +133,23 @@ class DashboardController
         echo json_encode($dados);
         exit;
     }
+
+    public function gerencialAction(): void
+    {
+        // Segurança extra
+        $user = \App\Core\Auth::user();
+        if (!in_array($user['perfil'], ['ADMIN', 'GERENTE'])) {
+            header('Location: ?controller=dashboard&action=index');
+            exit;
+        }
+
+        $model = new Dashboard();
+
+        $this->render('dashboard/gerencial', [
+            'totalGastoMes' => $model->getTotalGastoMes(),
+            'graficoMeses' => $model->getComprasUltimosMeses(),
+            'graficoDepartamentos' => $model->getConsumoPorDepartamento(),
+            'totalProdutos' => $model->getTotalProdutos()
+        ]);
+    }
 }

@@ -51,7 +51,12 @@ if (Auth::check()) {
     if ($user['perfil'] === 'OPERADOR') {
         $defaultController = 'requisicao';
         $defaultAction = 'list';
+    } elseif ($user['perfil'] === 'GERENTE') {
+        // Gerente cai direto no painel estratégico
+        $defaultController = 'dashboard';
+        $defaultAction = 'gerencial';
     }
+    
 } else {
     // Se não estiver logado, a tela padrão é o login
     $defaultController = 'auth';

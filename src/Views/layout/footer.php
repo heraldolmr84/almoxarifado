@@ -34,6 +34,23 @@
             allowClear: true
         });
 
+        // 1. REGRA ESPECÍFICA: Select de Fornecedor com criação de tags
+        if ($('#selectFornecedorEntrada').length > 0) {
+            $('#selectFornecedorEntrada').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                tags: true, // <-- O SEGREDO AQUI
+                placeholder: 'Selecione ou digite um novo...',
+                allowClear: true,
+                language: {
+                    "noResults": function () {
+                        return "Nenhum fornecedor. Pressione Enter para cadastrar.";
+                    }
+                }
+            });
+        }
+
+
         // 2. LÓGICA DO SKU
         if ($('#selectCategoria').length > 0) {
             // Escuta os dois tipos de eventos para garantir

@@ -9,35 +9,32 @@ class Mailer
     public static function enviarRecuperacaoSenha(string $paraEmail, string $token): bool
     {
         $mail = new PHPMailer(true);
-
+        
         try {
-            // --- CONFIGURAÇÕES DO SMTP ---
-            // Substitua com os dados do seu provedor (Gmail, Mailtrap, etc)
             $mail->isSMTP();
-            $mail->SMTPDebug = 3;
-            $mail->Debugoutput = 'error_log';
-            $mail->Host = 'smtp.email.com'; // Ex: smtp.gmail.com
-            $mail->SMTPAuth = true;
-            $mail->Timeout = 10; // Desiste de tentar conectar após 10 segundos
-            $mail->Username = 'usuario@email.com';         // Seu e-mail ou user do mailtrap
-            $mail->Password = 'sua_senha';           // Sua senha ou pass do mailtrap
+            $mail->Host       = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['MAIL_USER'] ?? '';
+            $mail->Password   = $_ENV['MAIL_PASS'] ?? ''; // Senha de app sem espaços
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;                      // Mailtrap usa 2525. Gmail usa 587
+            $mail->Port       = $_ENV['MAIL_PORT'] ?? 587;
+            $mail->Timeout    = 10; // Evita travar a tela se a rede falhar
 
-            // --- REMETENTE E DESTINATÁRIO ---
-            $mail->setFrom('nao-responda@almoxarifado.com', 'Almoxarifado UFMS');
+            $mail->CharSet = 'UTF-8';
+            $mail->Encoding = 'base64';
+
+            $mail->setFrom($_ENV['MAIL_FROM'] ?? 'nao-responda@almoxarifado.com', 'SISGEM - Almoxarifado');
             $mail->addAddress($paraEmail);
-
-            // --- CONTEÚDO ---
+            
             $mail->isHTML(true);
-            $mail->Subject = 'Recuperação de Senha - Almoxarifado';
-
-            // Link que o usuário vai clicar
-            $link = "http://localhost/almoxarifado/public/?controller=auth&action=reset&token=" . $token;
-
+            $mail->Subject = 'Recuperação de Senha - SISGEM';
+            
+            // Link de recuperação
+            $link = "http://" . $_SERVER['HTTP_HOST'] . "/almoxarifado/public/?controller=auth&action=reset&token=" . $token;
+            
             $mail->Body = "
                 <h2>Olá!</h2>
-                <p>Você solicitou a recuperação de senha no sistema de Almoxarifado.</p>
+                <p>Você solicitou a recuperação de senha no sistema SISGEM.</p>
                 <p>Clique no botão abaixo para criar uma nova senha. Este link é válido por 1 hora.</p>
                 <p>
                     <a href='{$link}' style='background-color: #0088B7; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>
@@ -50,7 +47,8 @@ class Mailer
             $mail->send();
             return true;
         } catch (Exception $e) {
-            // Em produção, salve o erro em um log
+            // Salva o erro no log para o admin ver, sem quebrar a tela do usuário
+            error_log("Erro no envio de e-mail: " . $mail->ErrorInfo);
             return false;
         }
     }

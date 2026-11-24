@@ -3,30 +3,7 @@
 -- Schema Completo do Banco de Dados (PostgreSQL)
 -- ==========================================================
 
--- Limpa o banco (caso já exista algo) respeitando a ordem das chaves estrangeiras
-DROP TABLE IF EXISTS auditoria CASCADE;
-DROP TABLE IF EXISTS backorders CASCADE;
-DROP TABLE IF EXISTS itens_movimentacao CASCADE;
-DROP TABLE IF EXISTS movimentacoes CASCADE;
-DROP TABLE IF EXISTS saldo_estoque CASCADE;
-DROP TABLE IF EXISTS lotes CASCADE;
-DROP TABLE IF EXISTS pedidos_compra_itens CASCADE;
-DROP TABLE IF EXISTS pedidos_compra CASCADE;
-DROP TABLE IF EXISTS requisicoes_itens CASCADE;
-DROP TABLE IF EXISTS requisicoes CASCADE;
-DROP TABLE IF EXISTS produtos CASCADE;
-DROP TABLE IF EXISTS fornecedores CASCADE;
-DROP TABLE IF EXISTS departamentos_almoxarifados CASCADE;
-DROP TABLE IF EXISTS almoxarifados CASCADE;
-DROP TABLE IF EXISTS usuarios CASCADE;
-DROP TABLE IF EXISTS departamentos CASCADE;
-DROP TABLE IF EXISTS categorias CASCADE;
-DROP TABLE IF EXISTS unidades_medida CASCADE;
-
--- ==========================================================
--- 1. TABELAS BASE (Cadastros Básicos)
--- ==========================================================
-
+-- 1. TABELAS BASE
 CREATE TABLE unidades_medida (
     id SERIAL PRIMARY KEY,
     sigla VARCHAR(10) NOT NULL UNIQUE,
@@ -36,7 +13,7 @@ CREATE TABLE unidades_medida (
 CREATE TABLE categorias (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
-    prefixo_sku VARCHAR(10), -- Ex: INF, LIM, ESC
+    prefixo_sku VARCHAR(10),
     categoria_pai_id INT REFERENCES categorias(id),
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -69,7 +46,6 @@ CREATE TABLE almoxarifados (
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
--- Tabela Pivô: Quais almoxarifados cada departamento pode acessar
 CREATE TABLE departamentos_almoxarifados (
     departamento_id INT REFERENCES departamentos(id) ON DELETE CASCADE,
     almoxarifado_id INT REFERENCES almoxarifados(id) ON DELETE CASCADE,
@@ -86,10 +62,7 @@ CREATE TABLE fornecedores (
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
--- ==========================================================
 -- 2. PRODUTOS E LOTES
--- ==========================================================
-
 CREATE TABLE produtos (
     id SERIAL PRIMARY KEY,
     codigo VARCHAR(50) NOT NULL UNIQUE,
@@ -97,7 +70,6 @@ CREATE TABLE produtos (
     descricao VARCHAR(200) NOT NULL,
     categoria_id INT REFERENCES categorias(id),
     unidade_medida_id INT NOT NULL REFERENCES unidades_medida(id),
-    fornecedor_id INT REFERENCES fornecedores(id), -- Adicionado posteriormente
     estoque_minimo NUMERIC(14,3) DEFAULT 0,
     estoque_maximo NUMERIC(14,3),
     controla_lote BOOLEAN NOT NULL DEFAULT FALSE,
@@ -113,10 +85,7 @@ CREATE TABLE lotes (
     UNIQUE (produto_id, numero_lote)
 );
 
--- ==========================================================
--- 3. REQUISIÇÕES DE MATERIAIS
--- ==========================================================
-
+-- 3. REQUISIÇÕES
 CREATE TABLE requisicoes (
     id SERIAL PRIMARY KEY,
     numero VARCHAR(20) UNIQUE,
@@ -148,7 +117,6 @@ CREATE TABLE requisicoes_itens (
     CONSTRAINT chk_atendida_le_aprovada CHECK (quantidade_atendida <= COALESCE(quantidade_aprovada, quantidade_solicitada))
 );
 
--- Fila de espera (para itens que foram atendidos parcialmente e aguardam estoque)
 CREATE TABLE backorders (
     id BIGSERIAL PRIMARY KEY,
     requisicao_item_id INT NOT NULL UNIQUE REFERENCES requisicoes_itens(id) ON DELETE CASCADE,
@@ -162,23 +130,20 @@ CREATE TABLE backorders (
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================================
--- 4. PEDIDOS DE COMPRA (Módulo do Comprador)
--- ==========================================================
-
+-- 4. COMPRAS
 CREATE TABLE pedidos_compra (
     id SERIAL PRIMARY KEY,
     numero VARCHAR(20) UNIQUE,
     solicitante_id INT NOT NULL REFERENCES usuarios(id),
     aprovador_id INT REFERENCES usuarios(id),
-    almoxarifado_id INT REFERENCES almoxarifados(id), -- Destino final
+    almoxarifado_id INT REFERENCES almoxarifados(id),
     fornecedor_id INT REFERENCES fornecedores(id),
     status VARCHAR(30) NOT NULL DEFAULT 'RASCUNHO' CHECK (status IN ('RASCUNHO','AGUARDANDO_APROVACAO','APROVADO','REJEITADO','COMPRADO','RECEBIDO','RECEBIDO_PARCIAL')),
     justificativa TEXT,
     data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_aprovacao TIMESTAMP,
     data_compra TIMESTAMP,
-    documento_compra VARCHAR(100), -- NF ou Pedido assinado
+    documento_compra VARCHAR(100),
     observacao TEXT
 );
 
@@ -191,14 +156,11 @@ CREATE TABLE pedidos_compra_itens (
     quantidade_recebida NUMERIC(14,3) NOT NULL DEFAULT 0
 );
 
--- ==========================================================
--- 5. MOVIMENTAÇÕES E SALDOS DE ESTOQUE
--- ==========================================================
-
+-- 5. MOVIMENTAÇÕES E SALDOS
 CREATE TABLE movimentacoes (
     id SERIAL PRIMARY KEY,
     tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
-    subtipo VARCHAR(30), -- COMPRA, REQUISICAO, TRANSFERENCIA, DEVOLUCAO, PERDA...
+    subtipo VARCHAR(30),
     data_movimentacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     usuario_id INT NOT NULL REFERENCES usuarios(id),
     fornecedor_id INT REFERENCES fornecedores(id),
@@ -237,24 +199,17 @@ CREATE TABLE saldo_estoque (
     UNIQUE (produto_id, almoxarifado_id, lote_id)
 );
 
--- ==========================================================
--- 6. AUDITORIA (Log de Alterações)
--- ==========================================================
-
 CREATE TABLE auditoria (
     id BIGSERIAL PRIMARY KEY,
     tabela VARCHAR(60) NOT NULL,
     registro_id BIGINT NOT NULL,
-    acao VARCHAR(20) NOT NULL, -- INSERT, UPDATE, DELETE
+    acao VARCHAR(20) NOT NULL,
     dados JSONB,
     usuario_id INT REFERENCES usuarios(id),
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================================
--- 7. TRIGGERS E FUNÇÕES (Automação de Saldo)
--- ==========================================================
-
+-- 6. TRIGGERS
 CREATE OR REPLACE FUNCTION fn_atualiza_saldo()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -290,54 +245,60 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER tg_atualiza_saldo
-AFTER INSERT ON itens_movimentacao
-FOR EACH ROW EXECUTE FUNCTION fn_atualiza_saldo();
+CREATE TRIGGER tg_atualiza_saldo AFTER INSERT ON itens_movimentacao FOR EACH ROW EXECUTE FUNCTION fn_atualiza_saldo();
 
--- ==========================================================
--- 8. DADOS INICIAIS (SEED)
--- ==========================================================
+CREATE OR REPLACE FUNCTION fn_auditar_alteracao()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_usuario_id INT;
+    v_dados JSONB;
+    v_acao VARCHAR(20);
+BEGIN
+    BEGIN
+        v_usuario_id := current_setting('app.current_user_id')::INT;
+    EXCEPTION WHEN OTHERS THEN
+        v_usuario_id := NULL;
+    END;
 
--- Unidades de Medida
+    IF (TG_OP = 'DELETE') THEN
+        v_acao := 'DELETE';
+        v_dados := row_to_json(OLD)::JSONB;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        v_acao := 'UPDATE';
+        v_dados := jsonb_build_object('antes', row_to_json(OLD)::JSONB, 'depois', row_to_json(NEW)::JSONB);
+    ELSIF (TG_OP = 'INSERT') THEN
+        v_acao := 'INSERT';
+        v_dados := row_to_json(NEW)::JSONB;
+    END IF;
+
+    INSERT INTO auditoria (tabela, registro_id, acao, dados, usuario_id)
+    VALUES (TG_TABLE_NAME, COALESCE(NEW.id, OLD.id), v_acao, v_dados, v_usuario_id);
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tg_auditar_produtos AFTER INSERT OR UPDATE OR DELETE ON produtos FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
+CREATE TRIGGER tg_auditar_usuarios AFTER INSERT OR UPDATE OR DELETE ON usuarios FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
+CREATE TRIGGER tg_auditar_requisicoes AFTER INSERT OR UPDATE OR DELETE ON requisicoes FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
+CREATE TRIGGER tg_auditar_compras AFTER INSERT OR UPDATE OR DELETE ON pedidos_compra FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
+
+-- 7. SEED (Dados Iniciais)
 INSERT INTO unidades_medida (sigla, descricao) VALUES 
-('UN', 'Unidade'), 
-('CX', 'Caixa'), 
-('KG', 'Quilograma'), 
-('L', 'Litro'), 
-('M', 'Metro'), 
-('RES', 'Resma');
+('UN', 'Unidade'), ('CX', 'Caixa'), ('KG', 'Quilograma'), ('L', 'Litro'), ('M', 'Metro'), ('RES', 'Resma'), ('FD', 'Fardo');
 
--- Categorias
 INSERT INTO categorias (nome, prefixo_sku) VALUES 
-('Material de Escritório', 'ESC'), 
-('Peças de Manutenção', 'MAN'), 
-('Limpeza', 'LIM'), 
-('Informática', 'INF'), 
-('Elétrica', 'ELE'),
-('Alimentos', 'ALI');
+('Material de Escritório', 'ESC'), ('Peças de Manutenção', 'MAN'), ('Limpeza', 'LIM'), ('Informática', 'INF'), ('Elétrica', 'ELE'), ('Alimentos', 'ALI');
 
--- Departamentos
 INSERT INTO departamentos (nome) VALUES 
-('Administração Geral'), 
-('Manutenção'), 
-('TI'), 
-('Secretaria Acadêmica'), 
-('Sala de Professores');
+('Administração Geral'), ('Manutenção'), ('TI'), ('Secretaria Acadêmica'), ('Sala de Professores'), ('Direção');
 
--- Almoxarifados
 INSERT INTO almoxarifados (nome, localizacao) VALUES 
-('Almoxarifado Central', 'Térreo - Bloco A'),
-('Almoxarifado Docentes', 'Bloco B - Sala 12');
+('Almoxarifado Central', 'Térreo - Bloco A'), ('Almoxarifado Docentes', 'Bloco B - Sala 12');
 
--- Permissões (Administração Geral tem acesso a todos os almoxarifados)
 INSERT INTO departamentos_almoxarifados (departamento_id, almoxarifado_id) VALUES 
 ((SELECT id FROM departamentos WHERE nome = 'Administração Geral'), (SELECT id FROM almoxarifados WHERE nome = 'Almoxarifado Central')),
 ((SELECT id FROM departamentos WHERE nome = 'Administração Geral'), (SELECT id FROM almoxarifados WHERE nome = 'Almoxarifado Docentes'));
 
--- Usuário Administrador Padrão (Senha: admin123)
--- O Hash abaixo é gerado com password_hash('admin123', PASSWORD_DEFAULT)
 INSERT INTO usuarios (nome, email, senha_hash, perfil, departamento_id, ativo) VALUES 
-('Administrador', 'admin@ufms.com', '$2y$10$e.wX5.1W.5.1W.5.1W.5.1uX5.1W.5.1W.5.1W.5.1W.5.1W', 'ADMIN', (SELECT id FROM departamentos WHERE nome = 'Administração Geral'), TRUE);
-
--- Garantindo que a senha seja 'admin123' caso o hash de exemplo falhe
-UPDATE usuarios SET senha_hash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' WHERE email = 'admin@ufms.com';
+('Administrador', 'admin@almoxarifado.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ADMIN', (SELECT id FROM departamentos WHERE nome = 'Administração Geral'), TRUE);

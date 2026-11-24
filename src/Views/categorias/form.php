@@ -6,6 +6,7 @@ $action = $isEdit ? '?controller=categoria&action=update' : '?controller=categor
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="<?= $action ?>" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $categoria['id'] ?>"><?php endif; ?>
             
             <div class="mb-3">

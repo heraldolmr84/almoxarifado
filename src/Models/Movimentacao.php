@@ -19,6 +19,21 @@ class Movimentacao
     public function registrarEntrada(array $data, int $usuarioId): bool
     {
         $db = Database::getConnection();
+
+        // LÓGICA DO FORNECEDOR:
+        $fornecedorId = null;
+        if (!empty($data['fornecedor_id'])) {
+            $valor = trim($data['fornecedor_id']);
+
+            if (is_numeric($valor)) {
+                // Se for número, é um ID já existente
+                $fornecedorId = (int) $valor;
+            } else {
+                // Se for texto, é um fornecedor novo. Usa a função que já criamos!
+                $fornecedorId = (new Fornecedor())->findOrCreate($valor);
+            }
+        }
+
         try {
             $db->beginTransaction();
 
@@ -49,15 +64,17 @@ class Movimentacao
             }
 
             // 3. Insere o cabeçalho
-            $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, documento, observacao) 
-                       VALUES ('ENTRADA', 'COMPRA', :usuario, :almox, :doc, :obs) RETURNING id";
+            $sqlMov = "INSERT INTO movimentacoes (tipo, subtipo, usuario_id, almoxarifado_destino_id, fornecedor_id, documento, observacao) 
+                       VALUES ('ENTRADA', 'COMPRA', :usuario, :almox, :fornecedor, :doc, :obs) RETURNING id";
             $stmtMov = $db->prepare($sqlMov);
             $stmtMov->execute([
                 'usuario' => $usuarioId,
                 'almox' => $data['almoxarifado_id'],
+                'fornecedor' => $fornecedorId,
                 'doc' => $data['documento'] ?? null,
                 'obs' => $data['observacao'] ?? null
             ]);
+
             $movimentacaoId = $stmtMov->fetchColumn();
 
             // 4. Insere o item com o lote_id

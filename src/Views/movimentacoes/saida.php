@@ -9,6 +9,7 @@
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="?controller=movimentacao&action=storeSaida" method="POST">
+            <?= \App\Core\Csrf::input() ?>
 
             <div class="row mb-3">
                 <!-- Produto e Almoxarifado com onchange para recarregar a página -->

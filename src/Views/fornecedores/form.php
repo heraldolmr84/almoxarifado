@@ -15,6 +15,7 @@ $action = $isEdit ? '?controller=fornecedor&action=update' : '?controller=fornec
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="<?= $action ?>" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $fornecedor['id'] ?>"><?php endif; ?>
 
             <div class="row mb-3">

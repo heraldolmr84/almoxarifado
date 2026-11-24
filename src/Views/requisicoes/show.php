@@ -131,6 +131,7 @@ $isAprovador = in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE']);
 <?php if (in_array($requisicao['status'], ['APROVADA', 'ATENDIDA_PARCIAL']) && $isAprovador): ?>
     <!-- Se estiver pronto para atender, abre o formulário -->
     <form id="formAtendimento" action="?controller=requisicao&action=atender" method="POST">
+        <?= \App\Core\Csrf::input() ?>
         <input type="hidden" name="id" value="<?= $requisicao['id'] ?>">
     <?php endif; ?>
 

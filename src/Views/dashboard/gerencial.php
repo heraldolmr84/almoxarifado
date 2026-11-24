@@ -1,13 +1,44 @@
 <h1 class="mb-4">Painel Gerencial</h1>
 
+<!-- FORMULÁRIO DE FILTRO BI -->
+<div class="card shadow-sm mb-4 border-0 bg-light">
+    <div class="card-body py-3">
+        <form method="GET" action="" class="row gx-3 align-items-end"> <!-- MUDOU PARA align-items-end -->
+            <input type="hidden" name="controller" value="dashboard">
+            <input type="hidden" name="action" value="gerencial">
+
+            <div class="col-md-3">
+                <label class="form-label mb-1 small text-muted fw-bold">Data Inicial</label>
+                <input type="date" name="data_inicio" class="form-control form-control-sm"
+                    value="<?= $filtros['data_inicio'] ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small text-muted fw-bold">Data Final</label>
+                <input type="date" name="data_fim" class="form-control form-control-sm"
+                    value="<?= $filtros['data_fim'] ?>">
+            </div>
+            <div class="col-md-3">
+                <!-- Botão formatado para ter a mesma altura do input -->
+                <button type="submit"
+                    class="btn btn-primary btn-sm w-100 d-flex justify-content-center align-items-center"
+                    style="background-color: #0088B7; border:none; height: 31px;">
+                    <i class="bi bi-funnel me-1"></i> Aplicar Filtro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Cards Superiores (3 colunas padronizadas) -->
 <div class="row mb-4">
     <!-- Card 1: Gastos -->
     <div class="col-md-4 mb-3">
         <div class="card text-white shadow-sm border-0 h-100" style="background-color: #0088B7;">
             <div class="card-body">
-                <h6 class="card-title text-uppercase text-white-50">Gasto em Compras (Mês Atual)</h6>
-                <h2 class="display-5 fw-bold mb-0">R$ <?= number_format($totalGastoMes, 2, ',', '.') ?></h2>
+                <h6 class="card-title text-uppercase text-white-50">Gasto no Período</h6>
+                <h2 class="display-5 fw-bold mb-0">R$
+                    <?= number_format($totalGastoPeriodo, 2, ',', '.') ?>
+                </h2>
             </div>
         </div>
     </div>
@@ -17,35 +48,30 @@
         <div class="card text-dark bg-light shadow-sm border-0 h-100">
             <div class="card-body">
                 <h6 class="card-title text-uppercase text-muted">Catálogo de Materiais</h6>
-                <h2 class="display-5 fw-bold mb-0"><?= $totalProdutos ?></h2>
-                <small>Produtos ativos cadastrados</small>
+                <h2 class="display-5 fw-bold mb-0">
+                    <?= $totalProdutos ?>
+                </h2>
+                <small>Produtos ativos</small>
             </div>
         </div>
     </div>
 
-    <!-- Card 3: Movimentações no Mês -->
+    <!-- Card 3: Movimentações no Período -->
     <div class="col-md-4 mb-3">
         <div class="card text-white bg-dark shadow-sm border-0 h-100">
             <div class="card-body">
-                <h6 class="card-title text-uppercase text-white-50">Movimentações (Últimos 6 meses)</h6>
+                <h6 class="card-title text-uppercase text-white-50">Movimentações no Período</h6>
                 <?php
                 $totalMov = 0;
-                // Verifica se as chaves existem e se não estão vazias
-                if (!empty($graficoMovimentacoes['entradas']) && !empty($graficoMovimentacoes['saidas'])) {
-                    $countEntradas = count($graficoMovimentacoes['entradas']);
-                    $countSaidas = count($graficoMovimentacoes['saidas']);
-
-                    // Pega o último item do array sem usar end()
-                    $ultimoMesEntradas = $graficoMovimentacoes['entradas'][$countEntradas - 1] ?? 0;
-                    $ultimoMesSaidas = $graficoMovimentacoes['saidas'][$countSaidas - 1] ?? 0;
-
-                    $totalMov = $ultimoMesEntradas + $ultimoMesSaidas;
+                if (!empty($graficoMovimentacoes['entradas'])) {
+                    // Soma todas as entradas e saídas do período filtrado
+                    $totalMov = array_sum($graficoMovimentacoes['entradas']) + array_sum($graficoMovimentacoes['saidas']);
                 }
                 ?>
                 <h2 class="display-5 fw-bold mb-0">
                     <?= number_format($totalMov, 0, ',', '.') ?>
                 </h2>
-                <small>Itens movimentados no último mês</small>
+                <small>Itens movimentados</small>
             </div>
         </div>
     </div>
@@ -109,17 +135,14 @@
         const ctxCompras = document.getElementById('graficoCompras');
         if (ctxCompras) {
             new Chart(ctxCompras.getContext('2d'), {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labelsCompras,
                     datasets: [{
                         label: 'Total Gasto (R$)',
                         data: dadosCompras,
-                        borderColor: corAzul,
-                        backgroundColor: 'rgba(0, 136, 183, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
+                        backgroundColor: corAzul, // Usa a cor azul direta
+                        borderRadius: 4
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }

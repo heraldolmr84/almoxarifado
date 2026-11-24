@@ -24,6 +24,7 @@
         <p class="text-muted small text-center mb-4">Para sua segurança, crie uma nova senha antes de continuar.</p>
 
         <form action="?controller=auth&action=salvarTrocaSenha" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <div class="mb-3">
                 <label class="form-label">Nova Senha</label>
                 <input type="password" name="senha" class="form-control" required minlength="6" autofocus>

@@ -7,6 +7,8 @@ error_reporting(E_ALL);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 
+session_start();
+
 // Carrega o autoload do Composer
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -14,7 +16,15 @@ require __DIR__ . '/../vendor/autoload.php';
 // Carrega as variáveis de ambiente usando o leitor nativo
 App\Core\Env::carregar(__DIR__ . '/../.env');
 
-session_start();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['_csrf_token'] ?? '';
+
+    if (!\App\Core\Csrf::validar($token)) {
+        die("Erro de segurança: Token CSRF inválido ou expirado. Volte e tente novamente.");
+    }
+}
+
+
 
 use App\Core\Router;
 use App\Core\Auth;
@@ -56,7 +66,7 @@ if (Auth::check()) {
         $defaultController = 'dashboard';
         $defaultAction = 'gerencial';
     }
-    
+
 } else {
     // Se não estiver logado, a tela padrão é o login
     $defaultController = 'auth';

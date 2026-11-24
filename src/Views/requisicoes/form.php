@@ -10,6 +10,7 @@
     <div class="card-body">
         <form action="?controller=requisicao&action=store" method="POST">
 
+            <?= \App\Core\Csrf::input() ?>
             <!-- Cabeçalho -->
             <div class="row mb-3">
                 <!-- Campo de Departamento foi removido. O sistema sabe quem é o usuário logado. -->

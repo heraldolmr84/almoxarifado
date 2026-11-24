@@ -10,6 +10,7 @@
     <div class="card-body">
         <form action="?controller=movimentacao&action=storeEntrada" method="POST">
 
+            <?= \App\Core\Csrf::input() ?>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Produto *</label>
@@ -33,6 +34,24 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+            </div>
+
+            <!-- CAMPO DE FORNECEDOR INTELIGENTE -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Fornecedor (Opcional)</label>
+                    <!-- Adicionamos a classe select2 e o id para o Javascript -->
+                    <select name="fornecedor_id" id="selectFornecedorEntrada" class="form-select select2-tags">
+                        <option value="">Selecione ou digite um novo...</option>
+                        <?php foreach ($fornecedores as $f): ?>
+                            <option value="<?= $f['id'] ?>">
+                                <?= htmlspecialchars($f['razao_social']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted">Digite o nome e aperte Enter para cadastrar um novo fornecedor na
+                        hora.</small>
                 </div>
             </div>
 
@@ -76,19 +95,19 @@
 </div>
 
 <script>
-function verificarLote() {
-    const select = document.getElementById('selectProduto');
-    const option = select.options[select.selectedIndex];
-    const camposLote = document.getElementById('camposLote');
-    const inputLote = document.getElementById('inputLote');
+    function verificarLote() {
+        const select = document.getElementById('selectProduto');
+        const option = select.options[select.selectedIndex];
+        const camposLote = document.getElementById('camposLote');
+        const inputLote = document.getElementById('inputLote');
 
-    if (option.getAttribute('data-controla') === '1') {
-        camposLote.style.display = 'flex';
-        inputLote.required = true; // Torna o lote obrigatório
-    } else {
-        camposLote.style.display = 'none';
-        inputLote.required = false;
-        inputLote.value = '';
+        if (option.getAttribute('data-controla') === '1') {
+            camposLote.style.display = 'flex';
+            inputLote.required = true; // Torna o lote obrigatório
+        } else {
+            camposLote.style.display = 'none';
+            inputLote.required = false;
+            inputLote.value = '';
+        }
     }
-}
 </script>

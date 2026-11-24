@@ -62,6 +62,19 @@ $currentController = $_GET['controller'] ?? 'dashboard';
                     </a>
                 <?php endif; ?>
 
+                <!-- MATERIAIS E ESTOQUE -->
+                <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
+                    <div class="sidebar-heading">Materiais</div>
+                    <a href="?controller=produto&action=list"
+                        class="sidebar-link <?= $currentController == 'produto' ? 'active' : '' ?>">
+                        <i class="bi bi-box-seam"></i> Cadastrar Materiais
+                    </a>
+                    <a href="?controller=estoque&action=list"
+                        class="sidebar-link <?= $currentController == 'estoque' ? 'active' : '' ?>">
+                        <i class="bi bi-clipboard-data"></i> Posição de Estoque
+                    </a>
+                <?php endif; ?>
+
                 <!-- MOVIMENTAÇÃO -->
                 <?php if (in_array($user['perfil'], ['ADMIN', 'ALMOXARIFE', 'GERENTE'])): ?>
                     <div class="sidebar-heading">Movimentação</div>
@@ -119,15 +132,19 @@ $currentController = $_GET['controller'] ?? 'dashboard';
                             class="sidebar-link <?= $currentController == 'almoxarifado' ? 'active' : '' ?>">
                             <i class="bi bi-building"></i> Almoxarifados
                         </a>
+                        <a href="?controller=departamento&action=list"
+                            class="sidebar-link <?= $currentController == 'departamento' ? 'active' : '' ?>">
+                            <i class="bi bi-diagram-3"></i> Departamentos
+                        </a>
 
                         <?php if ($user['perfil'] === 'ADMIN'): ?>
                             <a href="?controller=usuario&action=list"
                                 class="sidebar-link <?= $currentController == 'usuario' ? 'active' : '' ?>">
                                 <i class="bi bi-people"></i> Usuários
                             </a>
-                            <a href="?controller=departamento&action=list"
-                                class="sidebar-link <?= $currentController == 'departamento' ? 'active' : '' ?>">
-                                <i class="bi bi-diagram-3"></i> Departamentos
+                            <a href="?controller=auditoria&action=list"
+                                class="sidebar-link <?= $currentController == 'auditoria' ? 'active' : '' ?>">
+                                <i class="bi bi-shield-check"></i> Logs de Auditoria
                             </a>
                         <?php endif; ?>
                     </div>

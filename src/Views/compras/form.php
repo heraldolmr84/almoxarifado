@@ -2,6 +2,7 @@
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="?controller=pedidoCompra&action=store" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <div class="mb-3">
                 <label class="form-label">Justificativa da Compra *</label>
                 <textarea name="justificativa" class="form-control" rows="2" required placeholder="Ex: Reposição de estoque de papel A4..."></textarea>

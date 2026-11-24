@@ -57,6 +57,8 @@
             <?php endif; ?>
 
             <form action="?controller=auth&action=authenticate" method="POST">
+
+                <?= \App\Core\Csrf::input() ?>
                 <div class="mb-3">
                     <label class="form-label">E-mail</label>
                     <input type="email" name="email" class="form-control" required autofocus>

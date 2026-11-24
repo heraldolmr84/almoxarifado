@@ -11,6 +11,8 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
     <div class="card-body">
         <form action="<?= $action ?>" method="POST">
 
+            <?= \App\Core\Csrf::input() ?>
+
             <?php if ($isEdit): ?>
                 <input type="hidden" name="id" value="<?= $produto['id'] ?>">
             <?php endif; ?>
@@ -29,23 +31,7 @@ $action = $isEdit ? '?controller=produto&action=update' : '?controller=produto&a
                 </div>
             </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Fornecedor Principal</label>
-                    <!-- O atributo list aponta para o ID do datalist -->
-                    <input type="text" name="fornecedor_nome" class="form-control" list="listaFornecedores"
-                        placeholder="Digite para buscar ou cadastrar um novo..."
-                        value="<?= htmlspecialchars($produto['fornecedor_nome'] ?? '') ?>">
-
-                    <!-- O Datalist é invisível, ele só fornece as sugestões -->
-                    <datalist id="listaFornecedores">
-                        <?php foreach ($fornecedores as $f): ?>
-                            <option value="<?= htmlspecialchars($f['razao_social']) ?>">
-                            <?php endforeach; ?>
-                    </datalist>
-                    <small class="text-muted">Se o fornecedor não existir, ele será cadastrado automaticamente.</small>
-                </div>
-            </div>
+            
 
             <div class="row mb-3">
                 <div class="col-md-4">

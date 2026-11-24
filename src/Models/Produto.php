@@ -105,14 +105,9 @@ class Produto
     public function create(array $data): bool
     {
 
-        // 1. Resolve o fornecedor (busca ou cria)
-        $fornecedorId = null;
-        if (!empty($data['fornecedor_nome'])) {
-            $fornecedorId = (new Fornecedor())->findOrCreate($data['fornecedor_nome']);
-        }
-
-        $sql = "INSERT INTO produtos (codigo, descricao, categoria_id, unidade_medida_id, estoque_minimo, controla_lote, fornecedor_id)
-                VALUES (:codigo, :descricao, :categoria_id, :unidade_medida_id, :estoque_minimo, :controla_lote, :fornecedor_id)";
+        
+        $sql = "INSERT INTO produtos (codigo, descricao, categoria_id, unidade_medida_id, estoque_minimo, controla_lote)
+                VALUES (:codigo, :descricao, :categoria_id, :unidade_medida_id, :estoque_minimo, :controla_lote)";
 
         $stmt = Database::getConnection()->prepare($sql);
 
@@ -131,7 +126,6 @@ class Produto
 
         // AQUI ESTÁ A CORREÇÃO: Forçando o envio como Booleano nativo para o Postgres
         $stmt->bindValue(':controla_lote', isset($data['controla_lote']), PDO::PARAM_BOOL);
-        $stmt->bindValue(':fornecedor_id', $fornecedorId, $fornecedorId ? PDO::PARAM_INT : PDO::PARAM_NULL);
 
         return $stmt->execute();
     }

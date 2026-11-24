@@ -2,6 +2,7 @@
 <h1><?= $isEdit ? 'Editar Almoxarifado' : 'Novo Almoxarifado' ?></h1>
 <div class="card shadow-sm mt-4"><div class="card-body">
     <form action="<?= $action ?>" method="POST">
+        <?= \App\Core\Csrf::input() ?>
         <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $almoxarifado['id'] ?>"><?php endif; ?>
         <div class="mb-3">
             <label class="form-label">Nome do Almoxarifado *</label>

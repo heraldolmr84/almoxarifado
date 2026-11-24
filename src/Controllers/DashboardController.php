@@ -136,19 +136,26 @@ class DashboardController
 
     public function gerencialAction(): void
     {
-        // Segurança extra
         $user = \App\Core\Auth::user();
         if (!in_array($user['perfil'], ['ADMIN', 'GERENTE'])) {
             header('Location: ?controller=dashboard&action=index');
             exit;
         }
 
+        // Captura o período (Padrão: 1º ao último dia do mês atual)
+        $filtros = [
+            'data_inicio' => $_GET['data_inicio'] ?? date('Y-m-01'),
+            'data_fim' => $_GET['data_fim'] ?? date('Y-m-t')
+        ];
+
         $model = new Dashboard();
 
         $this->render('dashboard/gerencial', [
-            'totalGastoMes' => $model->getTotalGastoMes(),
-            'graficoMeses' => $model->getComprasUltimosMeses(),
-            'graficoDepartamentos' => $model->getConsumoPorDepartamento(),
+            'filtros' => $filtros,
+            'totalGastoPeriodo' => $model->getTotalGastoPeriodo($filtros['data_inicio'], $filtros['data_fim']),
+            'graficoMeses' => $model->getComprasPorMes($filtros['data_inicio'], $filtros['data_fim']),
+            'graficoDepartamentos' => $model->getConsumoPorDepartamento($filtros['data_inicio'], $filtros['data_fim']),
+            'graficoMovimentacoes' => $model->getMovimentacoesMensais($filtros['data_inicio'], $filtros['data_fim']),
             'totalProdutos' => $model->getTotalProdutos()
         ]);
     }

@@ -10,6 +10,7 @@
     <div class="card-body">
         <form action="?controller=movimentacao&action=storeTransferencia" method="POST">
             
+            <?= \App\Core\Csrf::input() ?>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label text-danger fw-bold">Almoxarifado de Origem *</label>

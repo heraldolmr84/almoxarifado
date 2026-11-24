@@ -56,15 +56,15 @@ class MovimentacaoController
     public function entradaAction(): void
     {
         $model = new Movimentacao();
-
-        $mensagem = $_SESSION['mensagem'] ?? null;
-        unset($_SESSION['mensagem']);
+        $db = \App\Core\Database::getConnection();
 
         $this->render('movimentacoes/entrada', [
             'produtos' => $model->getProdutos(),
             'almoxarifados' => $model->getAlmoxarifados(),
-            'mensagem' => $mensagem
+            'fornecedores' => $db->query("SELECT id, razao_social FROM fornecedores WHERE ativo = TRUE ORDER BY razao_social")->fetchAll(), // NOVO
+            'mensagem' => $_SESSION['mensagem'] ?? null
         ]);
+        unset($_SESSION['mensagem']);
     }
 
     public function storeEntradaAction(): void

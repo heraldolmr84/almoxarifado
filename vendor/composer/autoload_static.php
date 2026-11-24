@@ -21,6 +21,7 @@ class ComposerStaticInit7676d32f03e82aaebc95f633ab347a12
         ),
         'P' => 
         array (
+            'Picqer\\Barcode\\' => 15,
             'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
@@ -50,6 +51,10 @@ class ComposerStaticInit7676d32f03e82aaebc95f633ab347a12
         'Symfony\\Polyfill\\Ctype\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
+        ),
+        'Picqer\\Barcode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/picqer/php-barcode-generator/src',
         ),
         'PhpOption\\' => 
         array (

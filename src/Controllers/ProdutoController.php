@@ -76,8 +76,7 @@ class ProdutoController
         $this->render('produtos/form', [
             'produto' => $produto,
             'categorias' => $model->getCategorias(),
-            'unidades' => $model->getUnidades(),
-            'fornecedores' => (new \App\Models\Fornecedor())->all()
+            'unidades' => $model->getUnidades()
         ]);
     }
 
@@ -126,8 +125,7 @@ class ProdutoController
 
         $this->render('produtos/form', [
             'categorias' => $categorias,
-            'unidades' => $unidades,
-            'fornecedores' => (new \App\Models\Fornecedor())->all()
+            'unidades' => $unidades
         ]);
     }
 
@@ -136,7 +134,7 @@ class ProdutoController
         // 1. REDE DE SEGURANÇA: Força a geração do SKU no PHP
         // Isso garante que, mesmo que o JavaScript falhe, o código será gerado.
         if (!empty($_POST['categoria_id'])) {
-            $_POST['codigo'] = (new Produto())->gerarProximoSKU((int)$_POST['categoria_id']);
+            $_POST['codigo'] = (new Produto())->gerarProximoSKU((int) $_POST['categoria_id']);
         }
 
         // 2. Validação básica
@@ -167,7 +165,7 @@ class ProdutoController
         // Limpa qualquer buffer de saída para não sujar o JSON/Texto
         ob_clean();
 
-        $categoriaId = isset($_GET['categoria_id']) ? (int)$_GET['categoria_id'] : 0;
+        $categoriaId = isset($_GET['categoria_id']) ? (int) $_GET['categoria_id'] : 0;
 
         if ($categoriaId > 0) {
             $sku = (new Produto())->gerarProximoSKU($categoriaId);
@@ -176,6 +174,31 @@ class ProdutoController
             echo "Selecione a categoria";
         }
         exit; // Impede que o layout do sistema seja carregado
+    }
+
+    /**
+     * Recebe os IDS dos produtos selecionados
+     * gera etiquetas com códigos de barras
+     */
+    public function etiquetasAction(): void
+    {
+        // Recebe os IDs via POST (checkbox)
+        $ids = $_POST['produtos'] ?? [];
+
+        if (empty($ids)) {
+            $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Selecione pelo menos um produto para imprimir.'];
+            header('Location: ?controller=produto&action=list');
+            exit;
+        }
+
+        // Sanitiza os IDs e busca no banco
+        $inQuery = implode(',', array_map('intval', $ids));
+        $db = \App\Core\Database::getConnection();
+        $produtos = $db->query("SELECT id, codigo, descricao FROM produtos WHERE id IN ($inQuery) ORDER BY descricao")->fetchAll();
+
+        // Renderiza uma view limpa (sem menu/footer) para impressão
+        extract(['produtos' => $produtos]);
+        require __DIR__ . '/../Views/produtos/etiquetas.php';
     }
 
     private function render(string $view, array $data = []): void

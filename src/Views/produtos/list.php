@@ -7,6 +7,11 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Materiais</h1>
+    <form id="formEtiquetas" action="?controller=produto&action=etiquetas" method="POST" class="d-inline">
+        <?= \App\Core\Csrf::input() ?>
+        <div id="hiddenInputs"></div> <!-- O JS vai colocar os inputs aqui -->
+        <button type="button" class="btn btn-outline-dark" onclick="imprimirEtiquetas()">🏷️ Imprimir Etiquetas</button>
+    </form>
     <a href="?controller=produto&action=create" class="btn btn-primary">Cadastrar Material</a>
 </div>
 
@@ -16,15 +21,17 @@
         <form method="GET" action="" class="row gx-2 align-items-end">
             <input type="hidden" name="controller" value="produto">
             <input type="hidden" name="action" value="list">
-            
+
             <div class="col-md-3">
                 <label class="form-label mb-1 small text-muted">Código (SKU)</label>
-                <input type="text" name="codigo" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['codigo']) ?>" placeholder="Ex: 26010004">
+                <input type="text" name="codigo" class="form-control form-control-sm"
+                    value="<?= htmlspecialchars($filtros['codigo']) ?>" placeholder="Ex: 26010004">
             </div>
-            
+
             <div class="col-md-4">
                 <label class="form-label mb-1 small text-muted">Descrição</label>
-                <input type="text" name="descricao" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['descricao']) ?>" placeholder="Nome do produto...">
+                <input type="text" name="descricao" class="form-control form-control-sm"
+                    value="<?= htmlspecialchars($filtros['descricao']) ?>" placeholder="Nome do produto...">
             </div>
 
             <div class="col-md-3">
@@ -54,6 +61,10 @@
         <table class="table table-striped table-hover mb-0">
             <thead class="table-dark">
                 <tr>
+                    <th width="30">
+                        <!-- Checkbox para selecionar todos -->
+                        <input type="checkbox" id="selecionarTodos" class="form-check-input">
+                    </th>
                     <th>Código</th>
                     <th>Descrição</th>
                     <th>Categoria</th>
@@ -67,20 +78,26 @@
                         <td colspan="5" class="text-center py-4 text-muted">Nenhum produto cadastrado ainda.</td>
                     </tr>
                 <?php endif; ?>
-                
+
                 <?php foreach ($produtos as $p): ?>
-                <tr>
-                    <td><?= htmlspecialchars($p['codigo']) ?></td>
-                    <td><?= htmlspecialchars($p['descricao']) ?></td>
-                    <td><?= htmlspecialchars($p['categoria'] ?? '—') ?></td>
-                    <td><?= htmlspecialchars($p['unidade']) ?></td>
-                    <td class="text-end">
-                        <a href="?controller=produto&action=edit&id=<?= $p['id'] ?>" class="btn btn-sm btn-primary">Editar</a>
-                        <a href="?controller=produto&action=delete&id=<?= $p['id'] ?>" 
-                           class="btn btn-sm btn-danger" 
-                           onclick="return confirm('Tem certeza que deseja desativar este produto?');">Excluir</a>
-                    </td>
-                </tr>
+                    <tr>
+                        <td><input type="checkbox" name="produtos[]" value="<?= $p['id'] ?>"
+                                class="form-check-input check-produto"></td>
+                        <td><?= htmlspecialchars($p['codigo']) ?></td>
+                        <td><?= htmlspecialchars($p['descricao']) ?></td>
+                        <td><?= htmlspecialchars($p['categoria'] ?? '—') ?></td>
+                        <td><?= htmlspecialchars($p['unidade']) ?></td>
+                        <td class="text-end">
+                            <a href="?controller=produto&action=edit&id=<?= $p['id'] ?>"
+                                class="btn btn-sm btn-primary">Editar</a>
+                            <form action="?controller=produto&action=delete&id=<?= $p['id'] ?>" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('Tem certeza que deseja desativar este produto?');">
+                                <?= \App\Core\Csrf::input() ?>
+                                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
@@ -88,28 +105,32 @@
         <!-- INÍCIO DA PAGINAÇÃO -->
         <?php if ($totalPaginas > 1): ?>
             <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                <small class="text-muted">Mostrando página <?= $page ?> de <?= $totalPaginas ?> (Total: <?= $totalRegistros ?? '' ?> registros)</small>
-                
+                <small class="text-muted">Mostrando página <?= $page ?> de <?= $totalPaginas ?> (Total:
+                    <?= $totalRegistros ?? '' ?> registros)</small>
+
                 <nav aria-label="Navegação de páginas">
                     <ul class="pagination pagination-sm mb-0">
-                        
+
                         <!-- Botão Anterior -->
                         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">Anterior</a>
+                            <a class="page-link"
+                                href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">Anterior</a>
                         </li>
 
                         <!-- Números das Páginas -->
                         <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                             <li class="page-item <?= $page == $i ? 'active' : '' ?>">
-                                <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
+                                <a class="page-link"
+                                    href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; ?>
 
                         <!-- Botão Próximo -->
                         <li class="page-item <?= $page >= $totalPaginas ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Próximo</a>
+                            <a class="page-link"
+                                href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Próximo</a>
                         </li>
-                        
+
                     </ul>
                 </nav>
             </div>
@@ -117,3 +138,37 @@
         <!-- FIM DA PAGINAÇÃO -->
     </div>
 </div>
+
+<script>
+    // Marcar/Desmarcar todos
+    document.getElementById('selecionarTodos').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.check-produto');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    // Função que pega os selecionados e envia o formulário
+    function imprimirEtiquetas() {
+        const checkboxes = document.querySelectorAll('.check-produto:checked');
+        const hiddenContainer = document.getElementById('hiddenInputs');
+
+        if (checkboxes.length === 0) {
+            alert('Selecione pelo menos um produto para imprimir.');
+            return;
+        }
+
+        // Limpa inputs antigos
+        hiddenContainer.innerHTML = '';
+
+        // Adiciona os IDs selecionados no form oculto
+        checkboxes.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'produtos[]';
+            input.value = cb.value;
+            hiddenContainer.appendChild(input);
+        });
+
+        // Envia o formulário
+        document.getElementById('formEtiquetas').submit();
+    }
+</script>

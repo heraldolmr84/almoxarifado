@@ -4,7 +4,8 @@
         "php": ">=8.2",
         "phpmailer/phpmailer": "^7.2",
         "vlucas/phpdotenv": "^5.8",
-        "twbs/bootstrap-icons": "^1.13"
+        "twbs/bootstrap-icons": "^1.13",
+        "picqer/php-barcode-generator": "^3.3"
     },
     "autoload": {
         "psr-4": {

@@ -13,6 +13,8 @@
         <p class="text-muted small text-center mb-4">Informe seu e-mail cadastrado para receber o link de redefinição.</p>
         
         <form action="?controller=auth&action=sendForgot" method="POST">
+
+            <?= \App\Core\Csrf::input() ?>
             <div class="mb-3">
                 <label class="form-label">E-mail</label>
                 <input type="email" name="email" class="form-control" required autofocus>

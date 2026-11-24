@@ -17,6 +17,7 @@
         <?php endif; ?>
 
         <form action="?controller=auth&action=updatePassword" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
             
             <div class="mb-3">

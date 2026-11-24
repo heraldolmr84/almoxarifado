@@ -119,48 +119,55 @@ class Dashboard
         return (int) Database::getConnection()->query($sql)->fetchColumn();
     }
 
-    // Total gasto em compras no mês atual
-    public function getTotalGastoMes(): float
+    /** Funções para Dashboard Gerencial */
+    // 1. Total Gasto no Período
+    public function getTotalGastoPeriodo(string $inicio, string $fim): float
     {
         $sql = "SELECT COALESCE(SUM(i.quantidade * i.valor_unitario), 0) 
                   FROM itens_movimentacao i
                   JOIN movimentacoes m ON m.id = i.movimentacao_id
                  WHERE m.tipo = 'ENTRADA' AND m.status = 'CONFIRMADA'
-                   AND EXTRACT(MONTH FROM m.data_movimentacao) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR FROM m.data_movimentacao) = EXTRACT(YEAR FROM CURRENT_DATE)";
-        return (float) Database::getConnection()->query($sql)->fetchColumn();
+                   AND m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim";
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['inicio' => $inicio . ' 00:00:00', 'fim' => $fim . ' 23:59:59']);
+        return (float) $stmt->fetchColumn();
     }
 
-    // Compras dos últimos 6 meses para o Gráfico de Linhas
-    public function getComprasUltimosMeses(): array
+    // 2. Compras Agrupadas por Mês (Dentro do período)
+    public function getComprasPorMes(string $inicio, string $fim): array
     {
         $sql = "SELECT TO_CHAR(date_trunc('month', m.data_movimentacao), 'MM/YYYY') AS mes,
                        SUM(i.quantidade * i.valor_unitario) AS total
                   FROM itens_movimentacao i
                   JOIN movimentacoes m ON m.id = i.movimentacao_id
                  WHERE m.tipo = 'ENTRADA' AND m.status = 'CONFIRMADA' AND i.valor_unitario > 0
+                   AND m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim
                  GROUP BY date_trunc('month', m.data_movimentacao)
-                 ORDER BY date_trunc('month', m.data_movimentacao) ASC
-                 LIMIT 6";
-        return Database::getConnection()->query($sql)->fetchAll();
+                 ORDER BY date_trunc('month', m.data_movimentacao) ASC";
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['inicio' => $inicio . ' 00:00:00', 'fim' => $fim . ' 23:59:59']);
+        return $stmt->fetchAll();
     }
 
-    // Top 5 departamentos que mais consumiram materiais (por quantidade)
-    public function getConsumoPorDepartamento(): array
+    // 3. Consumo por Departamento (Dentro do período)
+    public function getConsumoPorDepartamento(string $inicio, string $fim): array
     {
         $sql = "SELECT d.nome AS departamento, SUM(ri.quantidade_atendida) AS total
                   FROM requisicoes_itens ri
                   JOIN requisicoes r ON r.id = ri.requisicao_id
                   JOIN departamentos d ON d.id = r.departamento_id
                  WHERE r.status IN ('ATENDIDA', 'ATENDIDA_PARCIAL')
+                   AND r.criado_em >= :inicio AND r.criado_em <= :fim
                  GROUP BY d.nome
                  ORDER BY total DESC
                  LIMIT 5";
-        return Database::getConnection()->query($sql)->fetchAll();
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['inicio' => $inicio . ' 00:00:00', 'fim' => $fim . ' 23:59:59']);
+        return $stmt->fetchAll();
     }
 
-    // Movimentações (Entradas x Saídas) dos últimos meses para o Gráfico
-    public function getMovimentacoesMensais(): array
+    // 4. Movimentações Mensais (Entradas x Saídas no período)
+    public function getMovimentacoesMensais(string $inicio, string $fim): array
     {
         $sql = "SELECT TO_CHAR(date_trunc('month', m.data_movimentacao), 'MM/YYYY') AS mes,
                        m.tipo,
@@ -168,16 +175,17 @@ class Dashboard
                   FROM movimentacoes m
                   JOIN itens_movimentacao i ON i.movimentacao_id = m.id
                  WHERE m.status = 'CONFIRMADA'
-                   AND m.data_movimentacao >= CURRENT_DATE - INTERVAL '5 months'
+                   AND m.data_movimentacao >= :inicio AND m.data_movimentacao <= :fim
                  GROUP BY date_trunc('month', m.data_movimentacao), m.tipo
                  ORDER BY date_trunc('month', m.data_movimentacao) ASC";
 
-        $dados = Database::getConnection()->query($sql)->fetchAll();
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute(['inicio' => $inicio . ' 00:00:00', 'fim' => $fim . ' 23:59:59']);
+        $dados = $stmt->fetchAll();
 
         $meses = [];
         $entradas = [];
         $saidas = [];
-
         $agrupado = [];
         foreach ($dados as $d) {
             $agrupado[$d['mes']][$d['tipo']] = (float) $d['total'];
@@ -189,10 +197,6 @@ class Dashboard
             $saidas[] = $tipos['SAIDA'] ?? 0;
         }
 
-        return [
-            'meses' => $meses,
-            'entradas' => $entradas,
-            'saidas' => $saidas
-        ];
+        return ['meses' => $meses, 'entradas' => $entradas, 'saidas' => $saidas];
     }
 }

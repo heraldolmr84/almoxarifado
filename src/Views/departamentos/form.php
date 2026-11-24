@@ -7,6 +7,7 @@ $almoxSelecionados = $departamento['almoxarifados'] ?? [];
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="<?= $action ?>" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $departamento['id'] ?>"><?php endif; ?>
             
             <div class="mb-3">

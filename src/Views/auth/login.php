@@ -29,8 +29,8 @@
 <body>
 
     <div style="text-align: center;">
-        <img src="assets/img/grafo_facom.png" alt="Logo Facom" style="max-width: 100px; margin-bottom: 10px;">
-        <h4 style="font-size: 1.2em">Sistema de Controle de Almoxarifado</h4>
+        <img src="assets/img/logo.png" alt="Logo Facom" style="max-width: 100px; margin-bottom: 10px;">
+        <h4 style="font-size: 1.2em">Fazer login no Sistema</h4>
     </div>
 
     <div class="card card-login shadow-sm">

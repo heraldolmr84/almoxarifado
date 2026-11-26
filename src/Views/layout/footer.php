@@ -3,8 +3,15 @@
 <!-- INÍCIO DO RODAPÉ -->
 <?php if (isset($user) && $user): ?>
     <!-- Fecha a div principal (que foi aberta no header) -->
+    <?php
+    // Evita fazer duas consultas seguidas se a variável já existir
+    if (!isset($dbConfig)) {
+        $dbConfig = (new \App\Models\Configuracao())->get();
+    }
+    $nomeEmpresa = !empty($dbConfig['nome_fantasia']) ? $dbConfig['nome_fantasia'] : ($dbConfig['razao_social'] ?? 'SISGEM - Sistema de Gestão de Materiais');
+    ?>
     <footer class="mt-auto pt-4 pb-2 text-center text-muted small border-top">
-        SISGEM - Sistema de Gestão de Materiais | Facom - Faculdade de Computação
+        <?= htmlspecialchars($nomeEmpresa) ?> | Desenvolvido com SISGEM
     </footer>
     </div> <!-- Fecha .main-content -->
 <?php else: ?>

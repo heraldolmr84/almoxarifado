@@ -2,6 +2,9 @@
 use App\Core\Auth;
 $user = Auth::user();
 $currentController = $_GET['controller'] ?? 'dashboard';
+
+// Busca as configurações da empresa
+$dbConfig = (new \App\Models\Configuracao())->get();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -24,6 +27,49 @@ $currentController = $_GET['controller'] ?? 'dashboard';
 
     <!-- Seu CSS Personalizado (certifique-se que o caminho está correto) -->
     <link rel="stylesheet" href="assets/css/style.css">
+
+    <?php
+    // Define a cor padrão se não houver nenhuma salva
+    $corPrincipal = $dbConfig['cor_primaria'] ?? '#0088B7';
+
+    // Função rápida em PHP para escurecer a cor no efeito hover (opcional)
+    // Se quiser simplificar, pode apenas usar a cor normal com transparência.
+    ?>
+    <style>
+        /* Sobrescreve a cor do menu lateral */
+        .sidebar {
+            background-color: <?= $corPrincipal ?> !important;
+        }
+
+        /* Efeito Hover e Item Ativo do Menu (usa uma sombra escura para não perder a cor) */
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background-color: rgba(0, 0, 0, 0.2) !important;
+            border-left: 4px solid rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* Botões Primários (Salvar, Filtrar, etc) */
+        .btn-primary {
+            background-color: <?= $corPrincipal ?> !important;
+            border-color: <?= $corPrincipal ?> !important;
+        }
+
+        .btn-primary:hover,
+        .btn-primary:active {
+            filter: brightness(0.8);
+            /* Escurece o botão ao passar o mouse */
+        }
+
+        /* Paginação Ativa */
+        .page-item.active .page-link {
+            background-color: <?= $corPrincipal ?> !important;
+            border-color: <?= $corPrincipal ?> !important;
+        }
+
+        /* Topbar do usuário (opcional) - deixa a barra superior com a cor */
+        /* .topbar { border-bottom: 3px solid <?= $corPrincipal ?>; } */
+    </style>
+</head>
 </head>
 
 <body>
@@ -34,12 +80,15 @@ $currentController = $_GET['controller'] ?? 'dashboard';
             <a href="?controller=dashboard&action=index"
                 class="sidebar-brand d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <img src="assets/img/logo.png" alt="Logo">
-                    <span style="font-size: 1.8rem; letter-spacing: 1px;">SISGEM</span>
+                    <?php if (!empty($dbConfig['logo_path'])): ?>
+                        <img src="<?= htmlspecialchars($dbConfig['logo_path']) ?>" alt="Logo"
+                            style="max-height: 40px; margin-right: 10px; background: #fff; padding: 2px; border-radius: 4px;">
+                    <?php else: ?>
+                        <i class="bi bi-box-seam fs-3 me-2"></i>
+                    <?php endif; ?>
+                    <span style="font-size: 1.8rem; letter-spacing: 2px;">SISGEM</span>
                 </div>
-                <span class="text-white-50" style="font-size: 0.7rem; font-weight: 400; margin-top: 5px;">
-                    V. 1.0.1
-                </span>
+                <span class="text-white-50" style="font-size: 0.7rem;">v.1.0.1</span>
             </a>
 
             <div class="mt-3">
@@ -145,6 +194,10 @@ $currentController = $_GET['controller'] ?? 'dashboard';
                             <a href="?controller=auditoria&action=list"
                                 class="sidebar-link <?= $currentController == 'auditoria' ? 'active' : '' ?>">
                                 <i class="bi bi-shield-check"></i> Logs de Auditoria
+                            </a>
+                            <a href="?controller=configuracao&action=edit"
+                                class="sidebar-link <?= $currentController == 'configuracao' ? 'active' : '' ?>">
+                                <i class="bi bi-gear"></i> Configurações
                             </a>
                         <?php endif; ?>
                     </div>

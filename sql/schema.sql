@@ -1,9 +1,35 @@
 -- ==========================================================
 -- SISGEM - SISTEMA DE GESTÃO DE MATERIAIS
 -- Schema Completo do Banco de Dados (PostgreSQL)
+-- Atualizado com: Módulo de Compras, Configurações White-label, 
+-- Lotes, Auditoria, Perfis e Permissões
 -- ==========================================================
 
--- 1. TABELAS BASE
+-- Limpa o banco respeitando a ordem das chaves estrangeiras
+DROP TABLE IF EXISTS configuracoes CASCADE;
+DROP TABLE IF EXISTS auditoria CASCADE;
+DROP TABLE IF EXISTS backorders CASCADE;
+DROP TABLE IF EXISTS itens_movimentacao CASCADE;
+DROP TABLE IF EXISTS movimentacoes CASCADE;
+DROP TABLE IF EXISTS saldo_estoque CASCADE;
+DROP TABLE IF EXISTS lotes CASCADE;
+DROP TABLE IF EXISTS pedidos_compra_itens CASCADE;
+DROP TABLE IF EXISTS pedidos_compra CASCADE;
+DROP TABLE IF EXISTS requisicoes_itens CASCADE;
+DROP TABLE IF EXISTS requisicoes CASCADE;
+DROP TABLE IF EXISTS produtos CASCADE;
+DROP TABLE IF EXISTS fornecedores CASCADE;
+DROP TABLE IF EXISTS departamentos_almoxarifados CASCADE;
+DROP TABLE IF EXISTS almoxarifados CASCADE;
+DROP TABLE IF EXISTS usuarios CASCADE;
+DROP TABLE IF EXISTS departamentos CASCADE;
+DROP TABLE IF EXISTS categorias CASCADE;
+DROP TABLE IF EXISTS unidades_medida CASCADE;
+
+-- ==========================================================
+-- 1. TABELAS BASE (Cadastros Básicos)
+-- ==========================================================
+
 CREATE TABLE unidades_medida (
     id SERIAL PRIMARY KEY,
     sigla VARCHAR(10) NOT NULL UNIQUE,
@@ -46,6 +72,7 @@ CREATE TABLE almoxarifados (
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+-- Permissões: Quais almoxarifados cada departamento pode acessar
 CREATE TABLE departamentos_almoxarifados (
     departamento_id INT REFERENCES departamentos(id) ON DELETE CASCADE,
     almoxarifado_id INT REFERENCES almoxarifados(id) ON DELETE CASCADE,
@@ -62,7 +89,10 @@ CREATE TABLE fornecedores (
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+-- ==========================================================
 -- 2. PRODUTOS E LOTES
+-- ==========================================================
+
 CREATE TABLE produtos (
     id SERIAL PRIMARY KEY,
     codigo VARCHAR(50) NOT NULL UNIQUE,
@@ -85,7 +115,10 @@ CREATE TABLE lotes (
     UNIQUE (produto_id, numero_lote)
 );
 
--- 3. REQUISIÇÕES
+-- ==========================================================
+-- 3. REQUISIÇÕES DE MATERIAIS
+-- ==========================================================
+
 CREATE TABLE requisicoes (
     id SERIAL PRIMARY KEY,
     numero VARCHAR(20) UNIQUE,
@@ -130,7 +163,10 @@ CREATE TABLE backorders (
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. COMPRAS
+-- ==========================================================
+-- 4. PEDIDOS DE COMPRA (Módulo do Comprador)
+-- ==========================================================
+
 CREATE TABLE pedidos_compra (
     id SERIAL PRIMARY KEY,
     numero VARCHAR(20) UNIQUE,
@@ -156,7 +192,10 @@ CREATE TABLE pedidos_compra_itens (
     quantidade_recebida NUMERIC(14,3) NOT NULL DEFAULT 0
 );
 
--- 5. MOVIMENTAÇÕES E SALDOS
+-- ==========================================================
+-- 5. MOVIMENTAÇÕES E SALDOS DE ESTOQUE
+-- ==========================================================
+
 CREATE TABLE movimentacoes (
     id SERIAL PRIMARY KEY,
     tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
@@ -199,6 +238,10 @@ CREATE TABLE saldo_estoque (
     UNIQUE (produto_id, almoxarifado_id, lote_id)
 );
 
+-- ==========================================================
+-- 6. AUDITORIA E CONFIGURAÇÕES (White-label)
+-- ==========================================================
+
 CREATE TABLE auditoria (
     id BIGSERIAL PRIMARY KEY,
     tabela VARCHAR(60) NOT NULL,
@@ -209,7 +252,21 @@ CREATE TABLE auditoria (
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. TRIGGERS
+CREATE TABLE configuracoes (
+    id SERIAL PRIMARY KEY,
+    razao_social VARCHAR(200),
+    nome_fantasia VARCHAR(200),
+    cnpj VARCHAR(18),
+    logo_path VARCHAR(255),
+    cor_primaria VARCHAR(7) DEFAULT '#0088B7',
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================================
+-- 7. TRIGGERS E FUNÇÕES
+-- ==========================================================
+
+-- Trigger de Saldo
 CREATE OR REPLACE FUNCTION fn_atualiza_saldo()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -247,6 +304,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER tg_atualiza_saldo AFTER INSERT ON itens_movimentacao FOR EACH ROW EXECUTE FUNCTION fn_atualiza_saldo();
 
+-- Trigger de Auditoria
 CREATE OR REPLACE FUNCTION fn_auditar_alteracao()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -283,22 +341,43 @@ CREATE TRIGGER tg_auditar_usuarios AFTER INSERT OR UPDATE OR DELETE ON usuarios 
 CREATE TRIGGER tg_auditar_requisicoes AFTER INSERT OR UPDATE OR DELETE ON requisicoes FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
 CREATE TRIGGER tg_auditar_compras AFTER INSERT OR UPDATE OR DELETE ON pedidos_compra FOR EACH ROW EXECUTE FUNCTION fn_auditar_alteracao();
 
--- 7. SEED (Dados Iniciais)
+-- ==========================================================
+-- 8. DADOS INICIAIS (SEED)
+-- ==========================================================
+
+-- Configuração Inicial (Para o sistema não quebrar no primeiro acesso)
+INSERT INTO configuracoes (id, razao_social, nome_fantasia, cor_primaria) 
+VALUES (1, 'SISGEM - Sistema de Gestão', 'SISGEM', '#0088B7');
+
+-- Unidades de Medida
 INSERT INTO unidades_medida (sigla, descricao) VALUES 
-('UN', 'Unidade'), ('CX', 'Caixa'), ('KG', 'Quilograma'), ('L', 'Litro'), ('M', 'Metro'), ('RES', 'Resma'), ('FD', 'Fardo');
+('UN', 'Unidade'), ('CX', 'Caixa'), ('KG', 'Quilograma'), 
+('L', 'Litro'), ('M', 'Metro'), ('RES', 'Resma'), ('FD', 'Fardo');
 
+-- Categorias com Prefixo de SKU
 INSERT INTO categorias (nome, prefixo_sku) VALUES 
-('Material de Escritório', 'ESC'), ('Peças de Manutenção', 'MAN'), ('Limpeza', 'LIM'), ('Informática', 'INF'), ('Elétrica', 'ELE'), ('Alimentos', 'ALI');
+('Material de Escritório', 'ESC'), 
+('Peças de Manutenção', 'MAN'), 
+('Limpeza', 'LIM'), 
+('Informática', 'INF'), 
+('Elétrica', 'ELE'),
+('Alimentos', 'ALI');
 
+-- Departamentos
 INSERT INTO departamentos (nome) VALUES 
-('Administração Geral'), ('Manutenção'), ('TI'), ('Secretaria Acadêmica'), ('Sala de Professores'), ('Direção');
+('Administração Geral'), ('Manutenção'), ('TI'), 
+('Secretaria Acadêmica'), ('Sala de Professores'), ('Direção');
 
+-- Almoxarifados
 INSERT INTO almoxarifados (nome, localizacao) VALUES 
-('Almoxarifado Central', 'Térreo - Bloco A'), ('Almoxarifado Docentes', 'Bloco B - Sala 12');
+('Almoxarifado Central', 'Térreo - Bloco A'),
+('Almoxarifado Docentes', 'Bloco B - Sala 12');
 
+-- Permissões (Administração Geral tem acesso a todos os almoxarifados)
 INSERT INTO departamentos_almoxarifados (departamento_id, almoxarifado_id) VALUES 
 ((SELECT id FROM departamentos WHERE nome = 'Administração Geral'), (SELECT id FROM almoxarifados WHERE nome = 'Almoxarifado Central')),
 ((SELECT id FROM departamentos WHERE nome = 'Administração Geral'), (SELECT id FROM almoxarifados WHERE nome = 'Almoxarifado Docentes'));
 
+-- Usuário Administrador Padrão (Senha: password)
 INSERT INTO usuarios (nome, email, senha_hash, perfil, departamento_id, ativo) VALUES 
-('Administrador', 'admin@almoxarifado.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ADMIN', (SELECT id FROM departamentos WHERE nome = 'Administração Geral'), TRUE);
+('Administrador', 'admin@ufms.br', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ADMIN', (SELECT id FROM departamentos WHERE nome = 'Administração Geral'), TRUE);

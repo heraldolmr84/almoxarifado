@@ -100,13 +100,17 @@
 /* =========================================
    LAYOUT: SIDEBAR (MENU LATERAL)
    ========================================= */
+:root {
+    --sidebar-width: 300px;
+}
+
 body {
     background-color: #f4f6f9;
     overflow-x: hidden;
 }
 
 .sidebar {
-    width: 260px;
+    width: var(--sidebar-width);
     background-color: #0088B7;
     /* Cor escura do print */
     color: #ecf0f1;
@@ -162,19 +166,19 @@ body {
 .sidebar-link:hover,
 .sidebar-link.active {
     background-color: #ffffff;
-    color: #0088B7;
     border-left: 4px solid #0088B7;
     /* Azul do sistema */
 }
 
 /* Área de Conteúdo Principal */
 .main-content {
-    margin-left: 260px;
+    margin-left: var(--sidebar-width);
     /* Mesma largura da sidebar */
     padding: 20px 30px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s;
 }
 
 /* Topbar para informações do usuário */
@@ -218,14 +222,37 @@ body {
     transform: rotate(0deg);
 }
 
+a.sidebar-link:hover {
+    color: #eee;
+}
+
+/* 1. Força a cor branca para o link ativo e para o estado de foco/clique */
+a.sidebar-link.active,
+a.sidebar-link:focus,
+a.sidebar-link:active {
+    color: #ffffff !important;
+    outline: none;
+    /* Remove a borda pontilhada de quando clica */
+    box-shadow: none;
+    /* Remove o brilho azul do Bootstrap */
+}
+
+/* 2. Remove a cor azul também do ícone (que é um pseudo-elemento do Bootstrap Icons) */
+a.sidebar-link.active i,
+a.sidebar-link:focus i,
+a.sidebar-link:active i {
+    color: #ffffff !important;
+}
+
 /* Responsividade para Celular */
 @media (max-width: 768px) {
     .sidebar {
-        margin-left: -260px;
+        margin-left: calc(-1 * var(--sidebar-width));
     }
 
     .main-content {
-        margin-left: 0;
+        margin-left: 0; 
+        padding: 15px;
     }
 
     .sidebar.active {
@@ -287,6 +314,7 @@ body {
 
 /* Corrige o visual do Select2 quando o dropdown abre */
 .select2-container--bootstrap-5 .select2-dropdown {
-    z-index: 1055; /* Garante que o dropdown fique por cima de tudo */
+    z-index: 1055;
+    /* Garante que o dropdown fique por cima de tudo */
     background-color: #fff;
 }

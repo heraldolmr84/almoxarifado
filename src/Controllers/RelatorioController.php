@@ -212,6 +212,9 @@ class RelatorioController
 
     private function render(string $view, array $data = []): void
     {
+
+        $data['config'] = (new \App\Models\Configuracao())->get();
+
         extract($data);
         require __DIR__ . '/../Views/layout/header.php';
         require __DIR__ . "/../Views/{$view}.php";

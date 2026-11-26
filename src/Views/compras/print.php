@@ -60,14 +60,25 @@
         <!-- Cabeçalho -->
         <div class="row header-print align-items-center">
             <div class="col-2">
-                <img src="assets/img/logo_facom.jpg" class="logo" alt="Logo">
+                <?php if (!empty($config['logo_path'])): ?>
+                    <img src="<?= htmlspecialchars($config['logo_path']) ?>" class="logo" alt="Logo">
+                <?php else: ?>
+                    <img src="/assets/img/logo_ufms.png" class="logo" alt="Logo Padrão">
+                <?php endif; ?>
             </div>
             <div class="col-8 text-center">
-                <h4 class="mb-0">COMPROVANTE DE RECEBIMENTO DE MATERIAL</h4>
-                <strong>Pedido de Compra: <?= $pedido['numero'] ?></strong>
+                <h4 class="mb-0">
+                    <?= htmlspecialchars($config['nome_fantasia'] ?? $config['razao_social'] ?? 'SISGEM') ?>
+                </h4>
+                <strong>COMPROVANTE DE RECEBIMENTO DE MATERIAL</strong><br>
+                <small>Pedido de Compra:
+                    <?= $pedido['numero'] ?>
+                </small>
             </div>
             <div class="col-2 text-end">
-                <small>Data: <?= date('d/m/Y', strtotime($pedido['data_compra'] ?? $pedido['data_criacao'])) ?></small>
+                <small>Data:
+                    <?= date('d/m/Y', strtotime($pedido['data_compra'] ?? $pedido['data_criacao'])) ?>
+                </small>
             </div>
         </div>
 

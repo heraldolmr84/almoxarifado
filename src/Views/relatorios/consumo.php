@@ -8,14 +8,36 @@
 </style>
 
 <!-- Cabeçalho para Impressão -->
-<div class="relatorio-header">
-    <h4 style="margin: 0; font-weight: bold;">SISGEM - Sistema de Gestão de Materiais</h4>
-    <p style="margin: 5px 0; font-size: 14px;">Relatório de Consumo por Setor</p>
-    <p style="margin: 0; font-size: 11px; color: #666;">
-        Período: <?= date('d/m/Y', strtotime($filtros['data_inicio'])) ?> a
-        <?= date('d/m/Y', strtotime($filtros['data_fim'])) ?> |
-        Emitido em: <?= date('d/m/Y H:i') ?>
-    </p>
+<div class="relatorio-header" style="position: relative; width: 100%; min-height: 70px;">
+
+    <!-- Centro: Logo e Nome -->
+    <div class="text-center">
+        <?php if (!empty($config['logo_path'])): ?>
+            <img src="/almoxarifado/public/<?= htmlspecialchars($config['logo_path']) ?>" alt="Logo"
+                style="max-height: 45px; margin-bottom: 5px;">
+        <?php else: ?>
+            <img src="/almoxarifado/public/assets/img/logo_ufms.png" alt="Logo"
+                style="max-height: 45px; margin-bottom: 5px;">
+        <?php endif; ?>
+
+        <h4 style="margin: 0; font-weight: bold; font-size: 18px;">
+            <?= htmlspecialchars($config['nome_fantasia'] ?? $config['razao_social'] ?? 'SISGEM') ?></h4>
+        <p style="margin: 2px 0 0 0; font-size: 12px; font-weight: bold; color: #555;">Consumo por Setor</p>
+    </div>
+
+    <!-- Direita: Usuário e Data (Posicionado Absoluto em relação ao cabeçalho) -->
+    <!-- O top: 50px alinha exatamente com o texto do nome da empresa -->
+    <div style="position: absolute; right: 0; top: 50px; text-align: right;">
+        <p style="margin: 0; font-size: 11px;">
+            <strong>Usuário:</strong> <?= htmlspecialchars(\App\Core\Auth::user()['nome'] ?? 'Sistema') ?>
+        </p>
+        <p style="margin: 2px 0 0 0; font-size: 9px; color: #666;">
+            Período: <?= date('d/m/Y', strtotime($filtros['data_inicio'])) ?> a
+            <?= date('d/m/Y', strtotime($filtros['data_fim'])) ?><br>
+            Emitido em: <?= date('d/m/Y H:i') ?>
+        </p>
+    </div>
+
 </div>
 
 <!-- Título e Botões (Não imprimem) -->

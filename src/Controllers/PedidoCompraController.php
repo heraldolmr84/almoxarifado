@@ -31,9 +31,10 @@ class PedidoCompraController
     {
         $user = Auth::user();
         if ($user['perfil'] === 'GERENTE') {
-            header('Location: ?controller=pedidoCompra&action=list'); exit;
+            header('Location: ?controller=pedidoCompra&action=list');
+            exit;
         }
-        
+
         $this->render('compras/form', [
             'produtos' => (new Produto())->getProdutosParaCompra(),
             'mensagem' => $_SESSION['mensagem'] ?? null
@@ -162,12 +163,13 @@ class PedidoCompraController
         $pedido = (new PedidoCompra())->find($id);
 
         if (!$pedido) {
-            header('Location: ?controller=pedidoCompra&action=list');
+            header('Location: ?controller=pedidocompra&action=list');
             exit;
         }
 
-        // Renderização limpa (sem header/footer do sistema)
-        extract(['pedido' => $pedido]);
+        $config = (new \App\Models\Configuracao())->get();
+
+        extract(['pedido' => $pedido, 'config' => $config]);
         require __DIR__ . '/../Views/compras/print.php';
     }
 

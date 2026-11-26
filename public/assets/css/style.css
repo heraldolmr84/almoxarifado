@@ -251,7 +251,7 @@ a.sidebar-link:active i {
     }
 
     .main-content {
-        margin-left: 0; 
+        margin-left: 0;
         padding: 15px;
     }
 
@@ -262,6 +262,16 @@ a.sidebar-link:active i {
 
 /* Regras exclusivas para quando o usuário mandar imprimir */
 @media print {
+
+    .no-print,
+    .navbar,
+    .topbar,
+    .btn,
+    form,
+    .card-header,
+    .pagination {
+        display: none !important;
+    }
 
     .no-print,
     .navbar,

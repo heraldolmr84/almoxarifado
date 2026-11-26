@@ -293,8 +293,10 @@ class RequisicaoController
             exit;
         }
 
-        // Renderização customizada (sem o header e footer padrão do sistema)
-        extract(['requisicao' => $requisicao]);
+        // BUSCA AS CONFIGURAÇÕES DA EMPRESA
+        $config = (new \App\Models\Configuracao())->get();
+
+        extract(['requisicao' => $requisicao, 'config' => $config]);
         require __DIR__ . '/../Views/requisicoes/print.php';
     }
 

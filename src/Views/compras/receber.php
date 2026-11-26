@@ -3,6 +3,7 @@
 <div class="card shadow-sm mt-4">
     <div class="card-body">
         <form action="?controller=pedidoCompra&action=storeRecebimento" method="POST">
+            <?= \App\Core\Csrf::input() ?>
             <input type="hidden" name="id" value="<?= $pedido['id'] ?>">
 
             <div class="row mb-4 bg-light p-3 rounded border">

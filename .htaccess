@@ -1,0 +1,15 @@
+# 1. Impede a listagem de pastas
+Options -Indexes
+
+# 2. Bloqueia acesso a arquivos sensíveis
+<FilesMatch "\.(env|json|sql|lock|md|sh)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. Bloqueia acesso direto às pastas de lógica do sistema
+RedirectMatch 403 ^/almoxarifado/src/.*$
+RedirectMatch 403 ^/almoxarifado/config/.*$
+RedirectMatch 403 ^/almoxarifado/vendor/.*$
+RedirectMatch 403 ^/almoxarifado/logs/.*$
+RedirectMatch 403 ^/almoxarifado/sql/.*$

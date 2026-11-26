@@ -1,12 +1,13 @@
-# Redireciona todo o tráfego da raiz para a pasta public
-RewriteEngine On
-RewriteRule ^$ public/ [L]
-RewriteRule (.*) public/$1 [L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Se o arquivo ou diretório existir fisicamente, não faz nada
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Redireciona tudo para o index.php
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
 
-# Bloqueia o acesso direto a qualquer arquivo fora da pasta public
-<FilesMatch "\.(env|json|sql|lock|md)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
+# Bloqueia listagem de diretórios
 Options -Indexes
